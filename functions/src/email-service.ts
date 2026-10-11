@@ -24,9 +24,9 @@ export interface AlertEmailPayload {
   deltaPercentMonth: number;
 }
 
-export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
-  const apiKey = process.env.RESEND_API_KEY;
-  
+export type EmailStatus = 'sent' | 'simulated' | 'failed';
+
+export function renderAlertEmail(payload: AlertEmailPayload) {
   const retailer = RETAILERS[payload.retailer];
   const productUrl = retailer.productUrl(payload.productId);
   const htmlBody = `
@@ -62,26 +62,43 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
     </div>
   `;
 
+  return {
+    subject: `🔥 Price Alert: ${payload.productTitle} hit $${payload.currentPrice.toFixed(2)}`,
+    html: htmlBody
+  };
+}
+
+export async function sendPriceAlertEmail(payload: AlertEmailPayload): Promise<EmailStatus> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const { subject, html } = renderAlertEmail(payload);
+
   if (apiKey && apiKey.startsWith('re_') && apiKey !== 're_demo_key') {
     try {
-      await fetch('https://api.resend.com/emails', {
+      const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'PriceOracle <alerts@priceoracle.app>',
+          from: process.env.ALERT_FROM_EMAIL || 'PriceOracle <alerts@priceoracle.app>',
           to: payload.to,
-          subject: `🔥 Price Alert: ${payload.productTitle} hit $${payload.currentPrice.toFixed(2)}`,
-          html: htmlBody
+          subject,
+          html
         })
       });
+      if (!res.ok) {
+        console.error(`[Email] Resend rejected the email (${res.status}):`, await res.text());
+        return 'failed';
+      }
       console.log(`[Email] Alert sent to ${payload.to}`);
+      return 'sent';
     } catch (e) {
       console.error('[Email] Failed to send via Resend:', e);
+      return 'failed';
     }
   } else {
     console.log(`[Email-Simulation] Dispatched simulated email to ${payload.to} for ${payload.retailer}:${payload.productId}`);
+    return 'simulated';
   }
 }

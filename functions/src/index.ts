@@ -1,2 +1,2 @@
 export { checkAmazonDealsCron, checkBestBuyDealsCron } from './tracker-cron';
-export { createAlert, subscribe } from './api';
+export { createAlert, subscribe, runAlertCheckNow } from './api';

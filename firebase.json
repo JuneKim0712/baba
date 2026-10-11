@@ -29,6 +29,10 @@
       {
         "source": "/api/subscribe{,/**}",
         "function": { "functionId": "subscribe", "region": "us-central1" }
+      },
+      {
+        "source": "/api/run-alert-check{,/**}",
+        "function": { "functionId": "runAlertCheckNow", "region": "us-central1" }
       }
     ]
   },

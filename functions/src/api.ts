@@ -2,6 +2,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { extractAmazonContext, extractBestBuyContext } from '../../lib/context-dev';
 import { calculatePriceProjection } from '../../lib/projection-engine';
+import { runAlertCheck } from './tracker-cron';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -113,6 +114,35 @@ export const subscribe = onRequest(async (req, res) => {
     res.json({ success: true, message: 'Subscribed to hot deal alerts!' });
   } catch (err: any) {
     console.error('Subscription error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Runs the scheduled price check for one alert right now. Disabled unless DEMO_TOKEN is set,
+// and every call must present it, because each check spends context.dev credits.
+export const runAlertCheckNow = onRequest({ timeoutSeconds: 300 }, async (req, res) => {
+  const token = process.env.DEMO_TOKEN;
+  if (!token || req.get('x-demo-token') !== token) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { alertId } = req.body || {};
+
+    if (!alertId) {
+      res.status(400).json({ error: 'alertId required' });
+      return;
+    }
+
+    res.json({ success: true, result: await runAlertCheck(alertId) });
+  } catch (err: any) {
+    console.error('Alert check error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
