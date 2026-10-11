@@ -71,3 +71,17 @@ When multiple agents or developers work simultaneously on this repo:
 - **Core Functionality to Preserve**:
   - `app/search/page.tsx` MUST remain wrapped in `<Suspense>` because Next.js static export requires `useSearchParams()` to be wrapped in a suspense boundary.
   - The side **"Set Alert"** button on every product card MUST remain connected to the alert storage and API sentinel.
+
+---
+
+### Commit: `26ef34c` — Real Prices Only & Honest Errors
+- **What was done by collaborator**:
+  - Removed the simulated fallback in `lib/context-dev.ts`: `extractAmazonContext` / `extractBestBuyContext` now return `null` when no ASIN/SKU is found or no live price can be read.
+  - `createAlert` returns HTTP 422 with an error message in that case instead of saving an alert with fake data.
+  - Cron jobs skip an alert when the live price cannot be read, so no email is sent on a default or stale price.
+  - `calculatePriceProjection` confidence is deterministic (no `Math.random()`), which fixes the home page hydration error.
+  - Hero signup form shows an error when `/api/subscribe` fails.
+  - README: functions dependencies are installed with `cd functions && npm install` (`npm --prefix functions install` adds a bogus `file:..` dependency).
+- **Core Functionality to Preserve**:
+  - Do not reintroduce simulated prices or demo ASIN/SKU fallbacks; callers of the extract functions must handle `null`.
+  - Deploy functions by name and never with `--force`: the project has a `generateText` function that is not in this repo.
