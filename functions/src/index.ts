@@ -1,1 +1,1 @@
-export { checkAmazonDealsCron } from './tracker-cron';
+export { checkAmazonDealsCron, checkBestBuyDealsCron } from './tracker-cron';

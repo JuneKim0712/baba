@@ -5,3 +5,6 @@ out/
 firebase-debug.log
 firebase-debug.*.log
 .DS_Store
+
+# graphify knowledge graph (local only)
+graphify-out/

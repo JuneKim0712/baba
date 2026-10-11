@@ -69,7 +69,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
             <h3 className="text-2xl font-black text-slate-900">Price Alert Configured!</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Our background worker is monitoring Amazon every few hours. We will email <strong>{email}</strong> the second the item hits your target or an imminent drop is forecast.
+              Our background worker is monitoring Amazon and Best Buy every few hours. We will email <strong>{email}</strong> the second the item hits your target or an imminent drop is forecast.
             </p>
             <button
               onClick={() => {
@@ -89,7 +89,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
             </div>
             <h3 className="text-2xl font-extrabold text-slate-900">Set Custom Price Alert</h3>
             <p className="text-sm text-slate-500 mt-1">
-              Track a specific product link, ASIN, or entire category.
+              Track a specific Amazon or Best Buy product, or an entire category.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -102,7 +102,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
                     targetType === 'asin' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Specific Amazon Product / URL
+                  Specific Product / URL
                 </button>
                 <button
                   type="button"
@@ -118,14 +118,14 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
               {/* Target Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  {targetType === 'asin' ? 'Amazon URL or ASIN' : 'Select Category'}
+                  {targetType === 'asin' ? 'Amazon or Best Buy URL, ASIN, or SKU' : 'Select Category'}
                 </label>
                 {targetType === 'asin' ? (
                   <input
                     type="text"
                     value={targetValue}
                     onChange={(e) => setTargetValue(e.target.value)}
-                    placeholder="https://www.amazon.com/dp/B0CX23V258 or ASIN..."
+                    placeholder="Amazon or Best Buy product URL, ASIN, or SKU..."
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     required
                   />

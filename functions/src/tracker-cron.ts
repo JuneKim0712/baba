@@ -1,6 +1,6 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
-import { sendPriceAlertEmail } from './email-service';
+import { sendPriceAlertEmail, RETAILERS, Retailer } from './email-service';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -8,12 +8,14 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) => {
-  console.log('[Cron] Running Amazon deal tracking sentinel...');
+async function checkRetailerDeals(retailer: Retailer) {
+  const retailerName = RETAILERS[retailer].name;
+  console.log(`[Cron] Running ${retailerName} deal tracking sentinel...`);
 
   try {
-    const alertsSnapshot = await db.collection('alerts')
-      .where('status', '==', 'active')
+    // Alerts created before Best Buy support carry no retailer field and are Amazon alerts
+    const activeAlerts = db.collection('alerts').where('status', '==', 'active');
+    const alertsSnapshot = await (retailer === 'amazon' ? activeAlerts : activeAlerts.where('retailer', '==', retailer))
       .limit(50)
       .get();
 
@@ -26,7 +28,8 @@ export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) =>
 
     for (const doc of alertsSnapshot.docs) {
       const alert = doc.data();
-      const targetAsin = alert.targetValue;
+      if ((alert.retailer || 'amazon') !== retailer) continue;
+      const productId = alert.targetValue;
 
       // Extract latest price via context.dev
       let currentPrice = alert.currentPriceAtCreation || 199.99;
@@ -38,7 +41,7 @@ export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) =>
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            url: `https://www.amazon.com/dp/${targetAsin}`,
+            url: RETAILERS[retailer].productUrl(productId),
             formats: ['json']
           })
         });
@@ -47,7 +50,7 @@ export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) =>
           if (json?.price) currentPrice = json.price;
         }
       } catch (e) {
-        console.warn(`[Cron] Fallback price check for ${targetAsin}:`, e);
+        console.warn(`[Cron] Fallback price check for ${productId}:`, e);
       }
 
       // Check threshold trigger
@@ -58,8 +61,9 @@ export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) =>
         
         await sendPriceAlertEmail({
           to: alert.email,
-          productTitle: alert.productTitle || `Amazon Item (${targetAsin})`,
-          asin: targetAsin,
+          productTitle: alert.productTitle || `${retailerName} Item (${productId})`,
+          retailer,
+          productId,
           currentPrice,
           originalPrice: alert.currentPriceAtCreation,
           projectedMid: currentPrice * 0.98,
@@ -78,4 +82,12 @@ export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) =>
   } catch (error) {
     console.error('[Cron] Error during scheduled execution:', error);
   }
+}
+
+export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) => {
+  await checkRetailerDeals('amazon');
+});
+
+export const checkBestBuyDealsCron = onSchedule('every 4 hours', async (event) => {
+  await checkRetailerDeals('bestbuy');
 });

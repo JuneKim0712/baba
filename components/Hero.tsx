@@ -70,7 +70,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAlertModal }) => {
             className="w-full sm:w-auto flex items-center justify-center space-x-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-base px-6 py-3.5 rounded-2xl border border-slate-300 shadow-sm transition hover:border-slate-400"
           >
             <Bell className="w-5 h-5 text-emerald-600" />
-            <span>Set Amazon Deal Alert</span>
+            <span>Set Deal Alert</span>
           </button>
         </div>
 

@@ -1,7 +1,21 @@
+export type Retailer = 'amazon' | 'bestbuy';
+
+export const RETAILERS: Record<Retailer, { name: string; productUrl: (productId: string) => string }> = {
+  amazon: {
+    name: 'Amazon',
+    productUrl: (asin) => `https://www.amazon.com/dp/${asin}`
+  },
+  bestbuy: {
+    name: 'Best Buy',
+    productUrl: (sku) => `https://www.bestbuy.com/site/${sku}.p?skuId=${sku}`
+  }
+};
+
 export interface AlertEmailPayload {
   to: string;
   productTitle: string;
-  asin: string;
+  retailer: Retailer;
+  productId: string; // Amazon ASIN or Best Buy SKU
   currentPrice: number;
   originalPrice?: number;
   projectedMid: number;
@@ -13,7 +27,8 @@ export interface AlertEmailPayload {
 export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
   const apiKey = process.env.RESEND_API_KEY;
   
-  const amazonUrl = `https://www.amazon.com/dp/${payload.asin}`;
+  const retailer = RETAILERS[payload.retailer];
+  const productUrl = retailer.productUrl(payload.productId);
   const htmlBody = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
       <div style="background: #10b981; padding: 12px 18px; border-radius: 12px; color: white; font-weight: bold; font-size: 14px; display: inline-block;">
@@ -23,7 +38,7 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
       <h2 style="color: #0f172a; margin-top: 18px; font-size: 20px;">Price Drop Alert for: ${payload.productTitle}</h2>
       
       <div style="margin: 20px 0; background: #f8fafc; padding: 18px; border-radius: 12px;">
-        <p style="font-size: 14px; color: #64748b; margin: 0;">Current Amazon Price</p>
+        <p style="font-size: 14px; color: #64748b; margin: 0;">Current ${retailer.name} Price</p>
         <p style="font-size: 32px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">$${payload.currentPrice.toFixed(2)}</p>
         <p style="font-size: 13px; color: #16a34a; font-weight: bold; margin-top: 6px;">
           Oracle Recommendation: ${payload.recommendation} (Historical Floor: $${payload.lowestPrice.toFixed(2)})
@@ -35,8 +50,8 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
       </p>
 
       <div style="margin-top: 24px;">
-        <a href="${amazonUrl}" style="background: #0f172a; color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
-          View Deal on Amazon &rarr;
+        <a href="${productUrl}" style="background: #0f172a; color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+          View Deal on ${retailer.name} &rarr;
         </a>
       </div>
 
@@ -67,6 +82,6 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
       console.error('[Email] Failed to send via Resend:', e);
     }
   } else {
-    console.log(`[Email-Simulation] Dispatched simulated email to ${payload.to} for ${payload.asin}`);
+    console.log(`[Email-Simulation] Dispatched simulated email to ${payload.to} for ${payload.retailer}:${payload.productId}`);
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { extractAmazonContext } from '@/lib/context-dev';
+import { extractAmazonContext, extractBestBuyContext } from '@/lib/context-dev';
 import { calculatePriceProjection } from '@/lib/projection-engine';
 
 export async function POST(req: Request) {
@@ -8,8 +8,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       email,
-      targetType, // 'asin' | 'category' | 'keyword'
-      targetValue, // URL, ASIN, or category name
+      targetType, // 'asin' | 'sku' | 'category' | 'keyword'
+      targetValue, // URL, ASIN, Best Buy SKU, or category name
       targetPrice,
       minDiscountPercent,
       triggerOnPredictedDrop = true,
@@ -19,19 +19,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and target product or category required' }, { status: 400 });
     }
 
-    // Extract product details if ASIN or URL
+    // Extract product details if ASIN, SKU, or URL
     let productDetails = null;
+    let productId = null;
+    let retailer = null;
     let initialProjection = null;
 
-    if (targetType === 'asin' || targetValue.includes('amazon.com')) {
-      productDetails = await extractAmazonContext(targetValue);
+    // Best Buy SKUs are 7-8 digits, so a bare one can never be mistaken for a 10-character ASIN
+    const isBestBuy = targetType === 'sku' || targetValue.includes('bestbuy.com') || /^\d{7,8}$/.test(targetValue.trim());
+
+    if (isBestBuy) {
+      const bestBuyDetails = await extractBestBuyContext(targetValue);
+      productDetails = bestBuyDetails;
+      productId = bestBuyDetails.sku;
+      retailer = 'bestbuy';
+    } else if (targetType === 'asin' || targetValue.includes('amazon.com')) {
+      const amazonDetails = await extractAmazonContext(targetValue);
+      productDetails = amazonDetails;
+      productId = amazonDetails.asin;
+      retailer = 'amazon';
+    }
+
+    if (productDetails) {
       initialProjection = calculatePriceProjection(productDetails.currentPrice, productDetails.category);
     }
 
     const alertDoc = {
       email: email.toLowerCase().trim(),
-      targetType: targetType || (targetValue.includes('amazon.com') ? 'asin' : 'category'),
-      targetValue: productDetails?.asin || targetValue,
+      targetType: isBestBuy ? 'sku' : targetType || (targetValue.includes('amazon.com') ? 'asin' : 'category'),
+      targetValue: productId || targetValue,
+      retailer,
       productTitle: productDetails?.title || `Alert on ${targetValue}`,
       currentPriceAtCreation: productDetails?.currentPrice || null,
       targetPrice: targetPrice ? Number(targetPrice) : null,

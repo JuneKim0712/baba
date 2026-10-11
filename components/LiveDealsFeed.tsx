@@ -9,7 +9,8 @@ interface DealsProps {
 
 const FEATURED_DEALS = [
   {
-    asin: 'B0CX23V258',
+    retailer: 'Amazon',
+    productId: 'B0CX23V258',
     title: 'Apple MacBook Air 13-inch (M3 Chip, 16GB RAM)',
     category: 'Electronics',
     currentPrice: 899.00,
@@ -21,7 +22,8 @@ const FEATURED_DEALS = [
     url: 'https://www.amazon.com/dp/B0CX23V258'
   },
   {
-    asin: 'B09V3HN1KC',
+    retailer: 'Amazon',
+    productId: 'B09V3HN1KC',
     title: 'Logitech MX Master 3S Wireless Performance Mouse',
     category: 'Electronics',
     currentPrice: 84.99,
@@ -33,7 +35,8 @@ const FEATURED_DEALS = [
     url: 'https://www.amazon.com/dp/B09V3HN1KC'
   },
   {
-    asin: 'B08N5WRWNW',
+    retailer: 'Amazon',
+    productId: 'B08N5WRWNW',
     title: 'Sony PlayStation 5 Console (Slim Edition)',
     category: 'Gaming',
     currentPrice: 449.00,
@@ -45,7 +48,8 @@ const FEATURED_DEALS = [
     url: 'https://www.amazon.com/dp/B08N5WRWNW'
   },
   {
-    asin: 'B08F6XQ1N8',
+    retailer: 'Amazon',
+    productId: 'B08F6XQ1N8',
     title: 'Ninja AF101 Air Fryer, 4 Qt Capacity',
     category: 'Home & Kitchen',
     currentPrice: 79.99,
@@ -55,6 +59,32 @@ const FEATURED_DEALS = [
     deltaMonth: +12.0,
     recommendation: 'BUY NOW',
     url: 'https://www.amazon.com/dp/B08F6XQ1N8'
+  },
+  {
+    retailer: 'Best Buy',
+    productId: '6447382',
+    title: 'Apple AirPods Pro (2nd Generation) with MagSafe Case (USB-C)',
+    category: 'Electronics',
+    currentPrice: 189.99,
+    originalPrice: 249.00,
+    discountPercent: 24,
+    tier: 'LOW',
+    deltaMonth: -3.2,
+    recommendation: 'BUY NOW',
+    url: 'https://www.bestbuy.com/site/6447382.p?skuId=6447382'
+  },
+  {
+    retailer: 'Best Buy',
+    productId: '6505727',
+    title: 'Sony WH-1000XM5 Wireless Noise-Canceling Headphones',
+    category: 'Electronics',
+    currentPrice: 329.99,
+    originalPrice: 399.99,
+    discountPercent: 18,
+    tier: 'LOW',
+    deltaMonth: -5.0,
+    recommendation: 'WAIT',
+    url: 'https://www.bestbuy.com/site/6505727.p?skuId=6505727'
   }
 ];
 
@@ -74,7 +104,7 @@ export const LiveDealsFeed: React.FC<DealsProps> = ({ onOpenAlertModal }) => {
             <span>Real-time Verified Drops</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-            Current Amazon Hot Deals
+            Current Amazon & Best Buy Hot Deals
           </h2>
           <p className="text-slate-500 text-sm mt-1">
             Items currently matching our Lowest / Low quantile bounds.
@@ -100,10 +130,10 @@ export const LiveDealsFeed: React.FC<DealsProps> = ({ onOpenAlertModal }) => {
       </div>
 
       {/* Grid of Deals */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDeals.map(deal => (
           <div
-            key={deal.asin}
+            key={`${deal.retailer}-${deal.productId}`}
             className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between"
           >
             <div>
@@ -138,10 +168,10 @@ export const LiveDealsFeed: React.FC<DealsProps> = ({ onOpenAlertModal }) => {
                 rel="noreferrer"
                 className="flex-1 text-center py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition"
               >
-                View on Amazon
+                View on {deal.retailer}
               </a>
               <button
-                onClick={() => onOpenAlertModal(deal.asin)}
+                onClick={() => onOpenAlertModal(deal.productId)}
                 title="Track this item"
                 className="p-2 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-600 hover:text-emerald-600 transition"
               >

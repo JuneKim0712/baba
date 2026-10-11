@@ -1,6 +1,6 @@
 # 🌐 PriceOracle Alertant & Autonomous Agent Ecosystem
 
-> **Project Mission**: Autonomous predictive e-commerce intelligence system combining a Google Chrome extension (injected Amazon price timing oracle) with a centralized web platform and automated alerting backend powered by `context.dev`, prediction market modeling, and Google Firebase.
+> **Project Mission**: Autonomous predictive e-commerce intelligence system combining a Google Chrome extension (injected Amazon price timing oracle) with a centralized web platform and automated Amazon and Best Buy alerting backend powered by `context.dev`, prediction market modeling, and Google Firebase.
 
 ---
 
@@ -32,10 +32,10 @@ Before committing or publishing changes:
   - Must never leak global CSS into the Amazon content scripts or break mobile responsiveness.
 - `lib/`: Pure utility functions and shared math engines:
   - `projection-engine.ts`: 5-tier quantile calculations (`Lowest`, `Low`, `Mid`, `High`, `Highest`) and 30-day projected percentage changes.
-  - `context-dev.ts`: Integration client for `context.dev` real-time extraction.
+  - `context-dev.ts`: Integration client for `context.dev` real-time extraction (`extractAmazonContext`, `extractBestBuyContext`).
   - `firebase.ts` / `firebase-admin.ts`: Firebase client and admin instances.
 - `functions/`: Firebase Cloud Functions backend.
-  - `tracker-cron.ts`: Scheduled job for monitoring Amazon prices and triggering email alerts.
+  - `tracker-cron.ts`: Scheduled jobs for monitoring Amazon and Best Buy prices and triggering email alerts. Alerts carry a `retailer` field (`'amazon'` | `'bestbuy'`); alerts without one are Amazon.
   - `email-service.ts`: HTML notification templates.
 
 ### 4. Mathematical Standards for Price Projections
@@ -73,6 +73,6 @@ npx firebase-tools deploy --only hosting --project xylm-306e6
 | Service | Identifier / Secret | Role |
 | :--- | :--- | :--- |
 | **Firebase Project** | `xylm-306e6` | Authentication, Firestore, Cloud Functions & Hosting |
-| **context.dev** | Pre-configured in `lib/context-dev.ts` | Real-time structured Amazon product scraping & context |
+| **context.dev** | Pre-configured in `lib/context-dev.ts` | Real-time structured Amazon & Best Buy product scraping & context |
 | **Gemini Prediction** | Configured via environment/options | Event contracts and sentiment probabilities |
 | **Resend / Email** | Configured via `RESEND_API_KEY` | Transactional email delivery for price drops |
