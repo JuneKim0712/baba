@@ -1,7 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { extractAmazonContext, extractBestBuyContext, searchRetailers } from '../../lib/context-dev';
-import { calculatePriceProjection } from '../../lib/projection-engine';
+import { getForecast } from './forecast';
 import { runAlertCheck } from './tracker-cron';
 import { sendCategoryAlertNotice } from './email-service';
 
@@ -73,7 +73,13 @@ export const createAlert = onRequest(async (req, res) => {
     }
 
     if (productDetails) {
-      initialProjection = calculatePriceProjection(productDetails.currentPrice, productDetails.category);
+      initialProjection = await getForecast({
+        currentPrice: productDetails.currentPrice,
+        category: productDetails.category,
+        retailer,
+        title: productDetails.title,
+        productId
+      });
     }
 
     const alertDoc = {

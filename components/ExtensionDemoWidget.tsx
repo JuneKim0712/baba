@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { calculatePriceProjection } from '@/lib/projection-engine';
+import React, { useEffect, useState } from 'react';
+import { calculatePriceProjection, ProjectionResult } from '@/lib/projection-engine';
+import { fetchForecast } from '@/lib/forecast-api';
 import { Sparkles, TrendingDown, ArrowDownRight, ArrowUpRight, HelpCircle } from 'lucide-react';
 
 const DEMO_ITEMS = [
@@ -35,12 +36,23 @@ export const ExtensionDemoWidget: React.FC = () => {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const activeItem = DEMO_ITEMS[selectedIdx];
 
-  const projection = calculatePriceProjection(
-    activeItem.price,
-    activeItem.category,
-    activeItem.discountProb,
-    activeItem.sentiment
-  );
+  // The ML model's forecast for the selected item; the formula fills in until it arrives
+  const [modelForecast, setModelForecast] = useState<{ idx: number; forecast: ProjectionResult } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchForecast({ currentPrice: activeItem.price, category: activeItem.category, retailer: 'amazon', title: activeItem.name }).then(forecast => {
+      if (forecast && !cancelled) setModelForecast({ idx: selectedIdx, forecast });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIdx]);
+
+  const projection =
+    modelForecast?.idx === selectedIdx
+      ? modelForecast.forecast
+      : calculatePriceProjection(activeItem.price, activeItem.category, activeItem.discountProb, activeItem.sentiment);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -125,7 +137,7 @@ export const ExtensionDemoWidget: React.FC = () => {
               </div>
               <div className="text-right">
                 <span className="text-xs text-slate-400 block font-medium">Confidence</span>
-                <span className="text-sm font-bold text-slate-800">{projection.confidence}%</span>
+                <span className="text-sm font-bold text-slate-800">{projection.confidence != null ? `${projection.confidence}%` : 'Not rated'}</span>
               </div>
             </div>
 
@@ -188,7 +200,7 @@ export const ExtensionDemoWidget: React.FC = () => {
                   {projection.deltaPercentMonth > 0 ? `+${projection.deltaPercentMonth}%` : `${projection.deltaPercentMonth}%`}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">Gemini Ready</span>
+              <span className="text-[11px] text-slate-400 font-medium">{projection.model ? 'ML model (experimental)' : 'Estimate'}</span>
             </div>
 
           </div>

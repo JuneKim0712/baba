@@ -7,6 +7,8 @@ import { Footer } from '@/components/Footer';
 import { searchProducts, SearchProductResult, SearchFilterOptions } from '@/lib/search-service';
 import { useAuth } from '@/lib/auth-context';
 import { authHeaders } from '@/lib/alerts-api';
+import { useForecasts, describeForecast } from '@/lib/forecast-api';
+import type { ProjectionResult } from '@/lib/projection-engine';
 import {
   Search,
   Bell,
@@ -31,6 +33,9 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [liveLoading, setLiveLoading] = useState(false);
   const latestSearch = useRef(0);
+  const forecasts = useForecasts(results);
+  // Forecasts for live listings, known once an alert has read their price
+  const [alertForecasts, setAlertForecasts] = useState<Record<string, { price: number; forecast: ProjectionResult }>>({});
 
   // Filters and Sort State
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -137,6 +142,9 @@ function SearchContent() {
       });
       if (!res.ok) throw new Error('Alert was not saved');
       const saved_alert = (await res.json()).alert || {};
+      if (saved_alert.initialProjection) {
+        setAlertForecasts(current => ({ ...current, [product.id]: { price: saved_alert.currentPriceAtCreation, forecast: saved_alert.initialProjection } }));
+      }
 
       const saved = localStorage.getItem('price_oracle_alerts');
       const existing = saved ? JSON.parse(saved) : [];
@@ -354,7 +362,9 @@ function SearchContent() {
                   <div className="w-full md:w-auto flex md:flex-col items-center md:items-end justify-between pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 gap-3 shrink-0">
                     {product.isLiveResult ? (
                       <p className="text-left md:text-right text-xs font-semibold text-slate-500 max-w-[14rem]">
-                        Live {product.retailer} listing. The current price is read when you set an alert.
+                        {alertForecasts[product.id]
+                          ? `Now $${alertForecasts[product.id].price}. ${describeForecast(alertForecasts[product.id].forecast)} (${alertForecasts[product.id].forecast.recommendation}).`
+                          : `Live ${product.retailer} listing. The current price is read when you set an alert.`}
                       </p>
                     ) : (
                     <div className="text-left md:text-right">
@@ -368,10 +378,12 @@ function SearchContent() {
                           </span>
                         )}
                       </div>
-                      <div className="mt-0.5 flex items-center space-x-1 text-xs font-bold text-rose-600">
-                        <TrendingDown className="w-3.5 h-3.5" />
-                        <span>-{product.projectedDiscount}% expected drop in 30 days</span>
-                      </div>
+                      {forecasts[product.id] && (
+                        <div className="mt-0.5 flex items-center space-x-1 text-xs font-bold text-slate-600">
+                          <TrendingDown className="w-3.5 h-3.5" />
+                          <span>{describeForecast(forecasts[product.id])} · {forecasts[product.id].recommendation}</span>
+                        </div>
+                      )}
                     </div>
                     )}
 

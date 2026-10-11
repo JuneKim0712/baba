@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Sparkles, Check, Star, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { authHeaders } from '@/lib/alerts-api';
+import { useForecasts, describeForecast } from '@/lib/forecast-api';
 import { searchProducts, SearchProductResult } from '@/lib/search-service';
 
 export type ProductResult = SearchProductResult;
@@ -16,6 +17,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
   const { user, signInWithGoogle } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProductResult[]>([]);
+  const forecasts = useForecasts(results);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [settingAlertId, setSettingAlertId] = useState<string | null>(null);
   const [successAlertId, setSuccessAlertId] = useState<string | null>(null);
@@ -213,9 +215,11 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
                           ${product.originalPrice.toFixed(2)}
                         </span>
                       )}
-                      <span className="text-xs font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded">
-                        -{product.projectedDiscount}% drop expected
-                      </span>
+                      {forecasts[product.id] && (
+                        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                          {describeForecast(forecasts[product.id])}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

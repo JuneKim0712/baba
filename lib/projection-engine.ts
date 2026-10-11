@@ -4,7 +4,7 @@ export interface ProjectionResult {
   deltaPercentMonth: number;
   recommendation: 'BUY NOW' | 'WAIT' | 'FAIR PRICE';
   subtitle: string;
-  confidence: number;
+  confidence: number | null; // null from the ML model, which has no honest basis for one
   quantiles: {
     lowest: number;   // P5
     low: number;      // P25
@@ -12,6 +12,13 @@ export interface ProjectionResult {
     high: number;     // P75
     highest: number;  // P95
   };
+  // Set when the forecast came from the ML model; null or absent for the fixed formula
+  model?: {
+    name: string;
+    version: string;
+    trainedOn: 'synthetic' | 'real';
+    [key: string]: unknown;
+  } | null;
 }
 
 export function calculatePriceProjection(

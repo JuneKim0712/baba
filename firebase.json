@@ -12,6 +12,18 @@
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
+    },
+    {
+      "source": "predictive-pricing-engine",
+      "codebase": "ml",
+      "runtime": "python312",
+      "ignore": [
+        "venv", ".venv", ".cache", ".scratch", ".pytest_cache", "**/__pycache__",
+        "benchmarks", "scripts", "data/price_logs",
+        "**/*.lgb.txt", "ml_engine/model/weights/category_index_1m",
+        "requirements-dev.txt", "pytest.ini", "README.md", ".gitignore", ".gitattributes",
+        ".git", "firebase-debug.log", "firebase-debug.*.log"
+      ]
     }
   ],
   "hosting": {
@@ -41,6 +53,10 @@
       {
         "source": "/api/my-alerts{,/**}",
         "function": { "functionId": "myAlerts", "region": "us-central1" }
+      },
+      {
+        "source": "/api/forecast{,/**}",
+        "function": { "functionId": "forecastPrice", "region": "us-central1" }
       }
     ]
   },

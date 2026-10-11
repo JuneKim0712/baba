@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendPriceAlertEmail, renderAlertEmail, RETAILERS, Retailer, EmailStatus } from './email-service';
 import { scrapeProduct } from '../../lib/context-dev';
-import { calculatePriceProjection } from '../../lib/projection-engine';
+import { getForecast } from './forecast';
 import { isProductAlert, shouldTriggerAlert } from '../../lib/alert-rules';
 
 if (!admin.apps.length) {
@@ -70,7 +70,7 @@ export async function checkAlert(doc: admin.firestore.DocumentSnapshot, retailer
 
   console.log(`[Cron] Trigger condition met for alert ${doc.id}!`);
 
-  const projection = calculatePriceProjection(result.currentPrice, category || 'Electronics');
+  const projection = await getForecast({ currentPrice: result.currentPrice, category, retailer, title: result.productTitle, productId });
   const emailPayload = {
     to: alert.email,
     productTitle: result.productTitle,
