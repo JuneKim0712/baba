@@ -152,7 +152,7 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
   // Audio & Earbuds
   {
     id: 'eb-1',
-    asin: 'B0CX23V258',
+    asin: 'B0CHWRXH8B',
     title: 'Apple AirPods Pro (2nd Generation) Wireless Earbuds with USB-C MagSafe Case',
     description: 'Up to 2x more Active Noise Cancellation, Adaptive Audio that automatically tailors noise control, Transparency mode, and Personalized Spatial Audio.',
     price: 189.99,
@@ -161,7 +161,7 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 14200,
     category: 'Electronics',
     image: 'https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B0CX23V258',
+    amazonUrl: 'https://www.amazon.com/dp/B0CHWRXH8B',
     projectedDiscount: 24,
     isRealAmazonProduct: true,
     specs: ['Apple H2 Chip', 'Up to 6 Hours Playtime', 'USB-C Charging Case', 'IP54 Dust & Sweat Resistant']
@@ -312,8 +312,10 @@ export function searchProducts(
     // Token match scoring
     tokens.forEach(token => {
       // Specialized Computer RAM disambiguation: "ram" should match Computer Memory heavily
-      if (token === 'ram' && (categoryLower.includes('memory') || titleLower.includes('ddr') || titleLower.includes('ram'))) {
-        score += 80;
+      // The boost must outweigh the full-query title match (100) plus a title word match (40),
+      // or a laptop that merely lists "16GB RAM" outranks actual memory kits
+      if (token === 'ram' && (categoryLower.includes('memory') || titleLower.includes('ddr'))) {
+        score += 200;
       }
 
       // Title word boundary match

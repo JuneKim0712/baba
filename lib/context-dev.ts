@@ -18,22 +18,31 @@ export interface ScrapedProduct {
 }
 
 export async function scrapeProduct(url: string, apiKey: string): Promise<ScrapedProduct | null> {
-  const res = await fetch('https://api.context.dev/v1/web/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      url,
-      formats: { product: true }
-    })
-  });
+  // context.dev limits how many requests run at once, so wait and retry when it answers 429
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch('https://api.context.dev/v1/web/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        url,
+        formats: { product: true }
+      })
+    });
 
-  if (!res.ok) return null;
+    if (res.status === 429 && attempt < 3) {
+      const retryAfterSeconds = Number(res.headers.get('Retry-After')) || 2;
+      await new Promise(resolve => setTimeout(resolve, Math.min(retryAfterSeconds, 10) * 1000));
+      continue;
+    }
 
-  const data = await res.json();
-  return data?.product?.data?.product || null;
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data?.product?.data?.product || null;
+  }
 }
 
 // Returns null when no ASIN is found or the live price cannot be read

@@ -85,3 +85,17 @@ When multiple agents or developers work simultaneously on this repo:
 - **Core Functionality to Preserve**:
   - Do not reintroduce simulated prices or demo ASIN/SKU fallbacks; callers of the extract functions must handle `null`.
   - Deploy functions by name and never with `--force`: the project has a `generateText` function that is not in this repo.
+
+---
+
+### Commit: Extension Links, Test Suite & Search/Rate-Limit Fixes
+- **What was done by collaborator**:
+  - All "Add to Chrome" buttons (navbar, hero, floating banner) open `EXTENSION_URL` from `lib/links.ts` (`https://github.com/JuneKim0712/babab/tags`) in a new tab.
+  - Added a Vitest suite: `npm test` runs 50 tests in `tests/` covering `lib/projection-engine.ts`, `lib/context-dev.ts` and `lib/search-service.ts`.
+  - Search: the "ram" boost now applies only to memory products and outweighs plain title matches, so a laptop listing "16GB RAM" no longer outranks RAM kits.
+  - Search catalog: `eb-1` (AirPods Pro 2 USB-C) had the same ASIN as `lt-1`; it is now `B0CHWRXH8B`, verified against the live Amazon page.
+  - `scrapeProduct` retries up to three times when context.dev answers 429 (the plan allows one request at a time).
+- **Core Functionality to Preserve**:
+  - Run `npm test` and `npm run build` before committing; both must pass.
+  - Catalog ASINs must be unique and each `amazonUrl` must contain its own ASIN (enforced by tests).
+- **Known issue**: ASIN `B0CX23V258` returns 404 on Amazon. It is still used by `lt-1` in `lib/search-service.ts`, the first card in `components/LiveDealsFeed.tsx`, and the sample alert in `app/alerts/page.tsx`.
