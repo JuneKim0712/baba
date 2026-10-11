@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { EXTENSION_URL } from '@/lib/links';
 
 export const ExtensionAdvocateBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -34,7 +35,9 @@ export const ExtensionAdvocateBanner: React.FC = () => {
 
         <div className="flex items-center space-x-2 shrink-0">
           <a
-            href="#install-extension"
+            href={EXTENSION_URL}
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs rounded-xl transition"
           >
             <span>Add to Chrome</span>

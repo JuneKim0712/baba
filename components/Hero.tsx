@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowRight, Bell, ShieldCheck, TrendingDown, Sparkles } from 'lucide-react';
+import { EXTENSION_URL } from '@/lib/links';
 
 interface HeroProps {
   onOpenAlertModal: () => void;
@@ -57,7 +58,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAlertModal }) => {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             id="install-extension"
-            href="#install-modal"
+            href={EXTENSION_URL}
+            target="_blank"
+            rel="noreferrer"
             className="w-full sm:w-auto flex items-center justify-center space-x-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base px-7 py-3.5 rounded-2xl shadow-lg shadow-emerald-600/25 transition duration-200 hover:-translate-y-0.5"
           >
             <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">

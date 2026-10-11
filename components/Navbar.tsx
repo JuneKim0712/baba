@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Sparkles, Bell, ArrowRight, LogIn, LogOut, User, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { EXTENSION_URL } from '@/lib/links';
 
 interface NavbarProps {
   onOpenAlertModal?: () => void;
@@ -80,7 +81,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAlertModal }) => {
           )}
 
           <a
-            href="/#install-extension"
+            href={EXTENSION_URL}
+            target="_blank"
+            rel="noreferrer"
             className="hidden sm:flex items-center space-x-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-sm hover:shadow transition"
           >
             <span>Add to Chrome</span>
