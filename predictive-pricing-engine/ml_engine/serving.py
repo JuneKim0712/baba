@@ -152,6 +152,30 @@ def normalize_retailer(value: Any) -> str:
     return text if text in RETAILERS else "other"
 
 
+MACRO_TILT_CAP = 0.015  # the macro heuristic may move the forecast by at most 1.5% either way
+
+
+def macro_tilt(signals: Optional[dict]) -> float:
+    """Small heuristic shift of the whole forecast from Gemini prediction-market odds.
+
+    This is a hand-set rule, not a trained input: the model has no history of these
+    contracts to learn from. Rate-hike and growth odds nudge prices up; rate-cut,
+    recession and unemployment odds nudge them down. A missing signal contributes nothing.
+    """
+    if not signals:
+        return 0.0
+
+    def odds(name: str, neutral: float = 0.0) -> float:
+        value = signals.get(name)
+        return neutral if value is None else float(value)
+
+    score = (0.5 * (odds('fed_hike_probability_next_meeting') - odds('fed_cut_probability_next_meeting'))
+             + 0.5 * (odds('gdp_growth_above_2pct_probability', 0.5) - 0.5)
+             - 0.5 * odds('recession_probability')
+             - 0.5 * odds('unemployment_above_5pct_probability'))
+    return max(-MACRO_TILT_CAP, min(MACRO_TILT_CAP, 0.02 * score))
+
+
 def subtitle_for(action: str, delta_percent: float, current: float, p25: float, p75: float) -> str:
     if action == "WAIT":
         if delta_percent <= -0.05:
@@ -194,7 +218,11 @@ def handle_forecast(method: str, body: Any, today: Optional[date] = None,
             category_cpi_3m_change=cpi_3m, category_cpi_12m_change=cpi_12m,
         ))  # no price history: every history feature is NaN (missing), not a default value
         vector = np.array([features[name] for name in FEATURES], dtype=np.float64)
-        forecast = forecast_from_log_ratios(current, model.predict_log_ratio(vector))
+        macro_block = (macro or _macro).get()
+        tilt = macro_tilt(macro_block.get('signals') if macro_block else None)
+        # Shifting every quantile by the same factor keeps them ordered and keeps the
+        # recommendation consistent with the shifted range
+        forecast = forecast_from_log_ratios(current, model.predict_log_ratio(vector) + np.log1p(tilt))
     except Exception as err:  # a structured failure, never a guessed forecast
         return _error(500, "model_error", f"{type(err).__name__}: {err}")
 
@@ -213,6 +241,6 @@ def handle_forecast(method: str, body: Any, today: Optional[date] = None,
             "model": {"name": model.name, "version": model.version, "trainedOn": model.trained_on,
                       "trainedAt": model.trained_at, "horizonDays": HORIZON_DAYS, "historyMode": "snapshot_only",
                       "category": category, "retailer": retailer},
-            "macro": (macro or _macro).get(),
+            "macro": None if macro_block is None else {**macro_block, "heuristicAdjustmentPercent": round(tilt * 100, 2) + 0.0},
         },
     }

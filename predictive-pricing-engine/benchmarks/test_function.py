@@ -159,6 +159,12 @@ def test_macro_cache_is_15_minutes():
     assert cache.network_fetches == 2
 
 
+class _NoMacro:
+    def get(self):
+        return None
+
+
+
 def test_onnx_serving_matches_the_lightgbm_service_path():
     """Same inputs through the research path (LightGBM) and the deployed path (ONNX)."""
     pytest.importorskip("lightgbm")
@@ -175,7 +181,8 @@ def test_onnx_serving_matches_the_lightgbm_service_path():
                                              category=category, category_cpi_3m_change=cpi_3m, category_cpi_12m_change=cpi_12m))
         vector = np.array([feats[n] for n in FEATURES])
         expected = regressor.predict(vector, body["currentPrice"]).quantiles()
-        got = handle_forecast("POST", body, today=TODAY)[1]["forecast"]["quantiles"]
+        # no macro signals: this test compares the two model runtimes, not the Gemini heuristic
+        got = handle_forecast("POST", body, today=TODAY, macro=_NoMacro())[1]["forecast"]["quantiles"]
         for a, b in zip(expected.values(), got.values()):
             assert a == pytest.approx(b, abs=0.02)
 

@@ -13,16 +13,16 @@
   "forecast": {
    "currentPrice": 609.99,
    "quantiles": {
-    "lowest": 514.69,
-    "low": 594.56,
-    "mid": 610.07,
-    "high": 620.17,
-    "highest": 783.46
+    "lowest": 516.63,
+    "low": 596.8,
+    "mid": 612.37,
+    "high": 622.51,
+    "highest": 786.41
    },
-   "projectedMid": 610.07,
-   "deltaPercentMonth": 0.0,
+   "projectedMid": 612.37,
+   "deltaPercentMonth": 0.4,
    "recommendation": "FAIR PRICE",
-   "subtitle": "Within the model's typical 30-day range ($594.56 to $620.17)",
+   "subtitle": "Within the model's typical 30-day range ($596.80 to $622.51)",
    "confidence": null,
    "model": {
     "name": "product_30d",
@@ -45,8 +45,9 @@
      "unemployment_above_5pct_probability": 0.115,
      "gdp_growth_above_2pct_probability": 0.8664
     },
-    "fetchedAt": "2026-10-11T22:36:35Z",
-    "usedByModel": false
+    "fetchedAt": "2026-10-11T22:49:01Z",
+    "usedByModel": false,
+    "heuristicAdjustmentPercent": 0.38
    }
   }
  }
