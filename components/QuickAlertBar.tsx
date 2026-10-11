@@ -87,6 +87,8 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
         id: `alert-${Date.now()}`,
         targetType: 'asin',
         targetValue: product.asin,
+        retailer: product.retailer === 'Best Buy' ? 'bestbuy' : 'amazon',
+        productUrl: product.amazonUrl,
         productTitle: product.title,
         currentPriceAtCreation: product.price,
         targetPrice: Number((product.price * 0.9).toFixed(2)),

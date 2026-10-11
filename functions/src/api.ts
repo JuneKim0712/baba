@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import { extractAmazonContext, extractBestBuyContext, searchRetailers, researchProduct } from '../../lib/context-dev';
 import { getForecast } from './forecast';
 import { runAlertCheck } from './tracker-cron';
-import { sendCategoryAlertNotice } from './email-service';
+import { sendCategoryAlertNotice, RETAILERS } from './email-service';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -88,6 +88,7 @@ export const createAlert = onRequest(async (req, res) => {
       targetType: isBestBuy ? 'sku' : targetType || (targetValue.includes('amazon.com') ? 'asin' : 'category'),
       targetValue: productId || targetValue,
       retailer,
+      productUrl: retailer && productId ? RETAILERS[retailer].productUrl(productId) : null,
       productTitle: productDetails?.title || `Alert on ${targetValue}`,
       currentPriceAtCreation: productDetails?.currentPrice || null,
       targetPrice: targetPrice ? Number(targetPrice) : null,

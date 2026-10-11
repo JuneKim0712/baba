@@ -46,6 +46,12 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
 
       const data = await res.json();
       if (data.success) {
+        // Keep a copy for the My Alerts page, which reads this browser's list when not signed in
+        try {
+          const saved = localStorage.getItem('price_oracle_alerts');
+          const existing = saved ? JSON.parse(saved) : [];
+          localStorage.setItem('price_oracle_alerts', JSON.stringify([{ id: data.alertId, ...data.alert }, ...existing]));
+        } catch {}
         setSuccess(true);
       } else {
         setErrorMsg(data.error || 'Failed to create alert');

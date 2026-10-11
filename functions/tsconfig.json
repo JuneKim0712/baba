@@ -11,5 +11,5 @@
     "rootDir": "..",
     "outDir": "lib"
   },
-  "include": ["src", "../lib/context-dev.ts", "../lib/projection-engine.ts"]
+  "include": ["src", "../lib/context-dev.ts", "../lib/projection-engine.ts", "../lib/retailers.ts", "../lib/alert-rules.ts"]
 }

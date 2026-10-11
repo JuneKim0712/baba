@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { fetchMyAlerts, changeMyAlert } from '@/lib/alerts-api';
+import { alertProductLink } from '@/lib/retailers';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { QuickAlertBar } from '@/components/QuickAlertBar';
@@ -12,6 +13,8 @@ interface AlertItem {
   id: string;
   targetType: string;
   targetValue: string;
+  retailer?: string | null;
+  productUrl?: string | null;
   productTitle: string;
   currentPriceAtCreation?: number;
   targetPrice?: number;
@@ -207,6 +210,11 @@ export default function AlertsPage() {
                   <div className="flex items-center space-x-2 mb-2">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase">
                       {alert.targetType}: {alert.targetValue}
+                      {alertProductLink(alert) && (
+                        <a href={alertProductLink(alert)!.url} target="_blank" rel="noreferrer" className="ml-2 normal-case underline hover:text-slate-700">
+                          {alertProductLink(alert)!.url.replace('https://www.', '')}
+                        </a>
+                      )}
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
@@ -294,13 +302,13 @@ export default function AlertsPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  {alert.targetValue.includes('amazon.com') && (
+                  {alertProductLink(alert) && (
                     <a
-                      href={alert.targetValue}
+                      href={alertProductLink(alert)!.url}
                       target="_blank"
                       rel="noreferrer"
                       className="p-2 text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl transition"
-                      title="View on Amazon"
+                      title={`View on ${alertProductLink(alert)!.retailerName}`}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>

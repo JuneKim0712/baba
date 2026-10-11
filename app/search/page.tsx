@@ -168,6 +168,8 @@ function SearchContent() {
         id: `alert-${Date.now()}`,
         targetType: 'asin',
         targetValue: product.asin,
+        retailer: product.retailer === 'Best Buy' ? 'bestbuy' : 'amazon',
+        productUrl: product.amazonUrl,
         productTitle: product.title,
         currentPriceAtCreation: saved_alert.currentPriceAtCreation || product.price,
         targetPrice: product.price ? Number((product.price * 0.9).toFixed(2)) : null,

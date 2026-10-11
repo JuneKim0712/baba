@@ -1,15 +1,7 @@
-export type Retailer = 'amazon' | 'bestbuy';
+import nodemailer from 'nodemailer';
+import { RETAILERS, Retailer } from '../../lib/retailers';
 
-export const RETAILERS: Record<Retailer, { name: string; productUrl: (productId: string) => string }> = {
-  amazon: {
-    name: 'Amazon',
-    productUrl: (asin) => `https://www.amazon.com/dp/${asin}`
-  },
-  bestbuy: {
-    name: 'Best Buy',
-    productUrl: (sku) => `https://www.bestbuy.com/site/${sku}.p?skuId=${sku}`
-  }
-};
+export { RETAILERS, Retailer };
 
 export interface AlertEmailPayload {
   to: string;
@@ -69,6 +61,27 @@ export function renderAlertEmail(payload: AlertEmailPayload) {
 }
 
 async function sendEmail(to: string, subject: string, html: string, simulationNote: string): Promise<EmailStatus> {
+  // A Gmail account can send to any address; Resend can only do that from a verified domain
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+
+  if (gmailUser && gmailAppPassword) {
+    try {
+      const transport = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: gmailUser, pass: gmailAppPassword.replace(/\s/g, '') }
+      });
+      await transport.sendMail({ from: `PriceOracle <${gmailUser}>`, to, subject, html });
+      console.log(`[Email] Sent via Gmail to ${to}: ${subject}`);
+      return 'sent';
+    } catch (e) {
+      console.error('[Email] Failed to send via Gmail:', e);
+      return 'failed';
+    }
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
 
   if (apiKey && apiKey.startsWith('re_') && apiKey !== 're_demo_key') {
