@@ -12,3 +12,6 @@ firebase-debug.*.log
 
 # graphify knowledge graph (local only)
 graphify-out/
+
+# Chrome extension repo (github.com/JuneKim0712/babab), cloned here but tracked separately
+babab/
