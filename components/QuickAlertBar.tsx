@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Sparkles, Check, Star, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { authHeaders } from '@/lib/alerts-api';
+import { AlertEmailPrompt, knownAlertEmail } from '@/components/AlertEmailPrompt';
 import { useForecasts, describeForecast } from '@/lib/forecast-api';
 import { searchProducts, SearchProductResult } from '@/lib/search-service';
 
@@ -22,6 +23,8 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
   const [settingAlertId, setSettingAlertId] = useState<string | null>(null);
   const [successAlertId, setSuccessAlertId] = useState<string | null>(null);
   const [failedAlertId, setFailedAlertId] = useState<string | null>(null);
+  // The product waiting for an email address before its alert can be saved
+  const [emailPromptFor, setEmailPromptFor] = useState<ProductResult | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -56,11 +59,14 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
   }, [query]);
 
   // Handler to set alert on a specific result
-  const handleSetAlert = async (product: ProductResult) => {
-    if (!user) {
-      await signInWithGoogle();
+  const handleSetAlert = async (product: ProductResult, emailOverride?: string) => {
+    // No sign-in needed: use the known address, or ask for one
+    const email = emailOverride || knownAlertEmail(user);
+    if (!email) {
+      setEmailPromptFor(product);
       return;
     }
+    setEmailPromptFor(null);
 
     setSettingAlertId(product.id);
 
@@ -70,7 +76,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders(user)) },
         body: JSON.stringify({
-          email: user.email || 'shopper@example.com',
+          email,
           targetType: 'asin',
           targetValue: product.asin,
           productTitle: product.title,
@@ -272,6 +278,16 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
               </div>
             );
           })}
+
+          {emailPromptFor && (
+            <div className="p-3">
+              <AlertEmailPrompt
+                productTitle={emailPromptFor.title}
+                onSubmit={(email) => handleSetAlert(emailPromptFor, email)}
+                onCancel={() => setEmailPromptFor(null)}
+              />
+            </div>
+          )}
 
           <div className="p-3 bg-slate-50 text-center text-xs text-slate-500 font-medium flex items-center justify-center space-x-4">
             <a href={`/search?q=${encodeURIComponent(query)}`} className="font-bold text-emerald-600 hover:underline">

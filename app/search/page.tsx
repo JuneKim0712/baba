@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { searchProducts, SearchProductResult, SearchFilterOptions } from '@/lib/search-service';
 import { useAuth } from '@/lib/auth-context';
 import { authHeaders } from '@/lib/alerts-api';
+import { AlertEmailPrompt, knownAlertEmail } from '@/components/AlertEmailPrompt';
 import { useForecasts, describeForecast } from '@/lib/forecast-api';
 import type { ProjectionResult } from '@/lib/projection-engine';
 import {
@@ -63,6 +64,8 @@ function SearchContent() {
   const [settingAlertId, setSettingAlertId] = useState<string | null>(null);
   const [successAlertId, setSuccessAlertId] = useState<string | null>(null);
   const [failedAlertId, setFailedAlertId] = useState<string | null>(null);
+  // The product waiting for an email address before its alert can be saved
+  const [emailPromptFor, setEmailPromptFor] = useState<SearchProductResult | null>(null);
 
   const executeSearch = (searchTerm: string) => {
     setLoading(true);
@@ -135,11 +138,14 @@ function SearchContent() {
     executeSearch(query);
   };
 
-  const handleSetAlert = async (product: SearchProductResult) => {
-    if (!user) {
-      await signInWithGoogle();
+  const handleSetAlert = async (product: SearchProductResult, emailOverride?: string) => {
+    // No sign-in needed: use the known address, or ask for one
+    const email = emailOverride || knownAlertEmail(user);
+    if (!email) {
+      setEmailPromptFor(product);
       return;
     }
+    setEmailPromptFor(null);
 
     setSettingAlertId(product.id);
 
@@ -148,7 +154,7 @@ function SearchContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders(user)) },
         body: JSON.stringify({
-          email: user.email || 'shopper@example.com',
+          email,
           targetType: 'asin',
           targetValue: product.isLiveResult ? product.amazonUrl : product.asin,
           productTitle: product.title,
@@ -463,6 +469,14 @@ function SearchContent() {
                     </div>
                   </div>
                   </div>
+
+                  {emailPromptFor?.id === product.id && (
+                    <AlertEmailPrompt
+                      productTitle={emailPromptFor.title}
+                      onSubmit={(email) => handleSetAlert(emailPromptFor, email)}
+                      onCancel={() => setEmailPromptFor(null)}
+                    />
+                  )}
 
                   {insights[product.id] && !insights[product.id].loading && (
                     <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
