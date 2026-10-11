@@ -1,6 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
 import { sendPriceAlertEmail, RETAILERS, Retailer } from './email-service';
+import { scrapeProduct } from '../../lib/context-dev';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -34,21 +35,8 @@ async function checkRetailerDeals(retailer: Retailer) {
       // Extract latest price via context.dev
       let currentPrice = alert.currentPriceAtCreation || 199.99;
       try {
-        const res = await fetch('https://api.context.dev/v1/extract', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${contextApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            url: RETAILERS[retailer].productUrl(productId),
-            formats: ['json']
-          })
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.price) currentPrice = json.price;
-        }
+        const product = await scrapeProduct(RETAILERS[retailer].productUrl(productId), contextApiKey);
+        if (product?.price) currentPrice = product.price;
       } catch (e) {
         console.warn(`[Cron] Fallback price check for ${productId}:`, e);
       }
@@ -84,10 +72,10 @@ async function checkRetailerDeals(retailer: Retailer) {
   }
 }
 
-export const checkAmazonDealsCron = onSchedule('every 4 hours', async (event) => {
+export const checkAmazonDealsCron = onSchedule({ schedule: 'every 4 hours', timeoutSeconds: 1800 }, async (event) => {
   await checkRetailerDeals('amazon');
 });
 
-export const checkBestBuyDealsCron = onSchedule('every 4 hours', async (event) => {
+export const checkBestBuyDealsCron = onSchedule({ schedule: 'every 4 hours', timeoutSeconds: 1800 }, async (event) => {
   await checkRetailerDeals('bestbuy');
 });

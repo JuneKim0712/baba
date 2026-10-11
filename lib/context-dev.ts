@@ -9,6 +9,33 @@ export interface ExtractedProductContext {
   isAvailable: boolean;
 }
 
+// Product fields returned by context.dev's scrape endpoint (subset we use)
+export interface ScrapedProduct {
+  name: string;
+  price: number | null;
+  regularPrice: number | null;
+  category: string | null;
+}
+
+export async function scrapeProduct(url: string, apiKey: string): Promise<ScrapedProduct | null> {
+  const res = await fetch('https://api.context.dev/v1/web/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      url,
+      formats: { product: true }
+    })
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return data?.product?.data?.product || null;
+}
+
 export async function extractAmazonContext(urlOrAsin: string): Promise<ExtractedProductContext> {
   const apiKey = process.env.CONTEXT_DEV_API_KEY || 'ctxt_secret_7390b0f7f788470c85aa687254599803';
   
@@ -18,25 +45,15 @@ export async function extractAmazonContext(urlOrAsin: string): Promise<Extracted
   const url = `https://www.amazon.com/dp/${asin}`;
 
   try {
-    const res = await fetch('https://api.context.dev/v1/extract', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['json', 'markdown']
-      })
-    });
+    const product = await scrapeProduct(url, apiKey);
 
-    if (res.ok) {
-      const data = await res.json();
+    if (product?.price) {
       return {
         asin,
-        title: data?.title || 'Amazon Product',
-        currentPrice: data?.price || 149.99,
-        category: data?.category || 'Electronics',
+        title: product.name || 'Amazon Product',
+        currentPrice: product.price,
+        originalPrice: product.regularPrice || undefined,
+        category: product.category || 'Electronics',
         isAvailable: true
       };
     }
@@ -70,25 +87,15 @@ export async function extractBestBuyContext(urlOrSku: string): Promise<Extracted
   const url = `https://www.bestbuy.com/site/${sku}.p?skuId=${sku}`;
 
   try {
-    const res = await fetch('https://api.context.dev/v1/extract', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        url,
-        formats: ['json', 'markdown']
-      })
-    });
+    const product = await scrapeProduct(url, apiKey);
 
-    if (res.ok) {
-      const data = await res.json();
+    if (product?.price) {
       return {
         sku,
-        title: data?.title || 'Best Buy Product',
-        currentPrice: data?.price || 149.99,
-        category: data?.category || 'Electronics',
+        title: product.name || 'Best Buy Product',
+        currentPrice: product.price,
+        originalPrice: product.regularPrice || undefined,
+        category: product.category || 'Electronics',
         isAvailable: true
       };
     }
