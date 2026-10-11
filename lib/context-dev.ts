@@ -108,3 +108,75 @@ export async function extractBestBuyContext(urlOrSku: string): Promise<Extracted
 
   return null;
 }
+
+export interface RetailSearchResult {
+  retailer: 'amazon' | 'bestbuy';
+  productId: string; // Amazon ASIN or Best Buy SKU
+  title: string;
+  description: string;
+  url: string;
+}
+
+// Maps a search result URL to a product we can price-check, or null when it is not a product page
+export function parseRetailProductUrl(url: string): Pick<RetailSearchResult, 'retailer' | 'productId' | 'url'> | null {
+  if (/(^|[/.])amazon[.]com[/]/i.test(url)) {
+    // Amazon search results use /dp/, /gp/product/ and /clp/ paths, all followed by the ASIN
+    const asinMatch = url.match(/[/](?:dp|clp|gp[/]product)[/]([A-Z0-9]{10})(?:[/?#]|$)/i);
+    if (!asinMatch) return null;
+    const asin = asinMatch[1].toUpperCase();
+    return { retailer: 'amazon', productId: asin, url: `https://www.amazon.com/dp/${asin}` };
+  }
+
+  if (/(^|[/.])bestbuy[.]com[/]/i.test(url)) {
+    const skuMatch = url.match(/(?:skuId=|[/]sku[/]|[/])([0-9]{7,8})(?:[.]p)?(?:[/?&#]|$)/i);
+    if (!skuMatch) return null;
+    return { retailer: 'bestbuy', productId: skuMatch[1], url: `https://www.bestbuy.com/site/${skuMatch[1]}.p?skuId=${skuMatch[1]}` };
+  }
+
+  return null;
+}
+
+// Finds real Amazon and Best Buy product pages for a shopper's query via context.dev web search
+export async function searchRetailers(query: string, apiKey: string): Promise<RetailSearchResult[]> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch('https://api.context.dev/v1/web/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query,
+        includeDomains: ['amazon.com', 'bestbuy.com'],
+        numResults: 10,
+        country: 'us'
+      })
+    });
+
+    if (res.status === 429 && attempt < 3) {
+      const retryAfterSeconds = Number(res.headers.get('Retry-After')) || 2;
+      await new Promise(resolve => setTimeout(resolve, Math.min(retryAfterSeconds, 10) * 1000));
+      continue;
+    }
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const seen = new Set<string>();
+    const results: RetailSearchResult[] = [];
+
+    for (const item of data?.results || []) {
+      const product = parseRetailProductUrl(item.url || '');
+      if (!product || seen.has(product.retailer + product.productId)) continue;
+      seen.add(product.retailer + product.productId);
+
+      results.push({
+        ...product,
+        title: String(item.title || '').replace(/^Amazon[.]com: /i, '').replace(/ [-|:] (Amazon[.]com|Best Buy)$/i, '').trim(),
+        description: item.description || ''
+      });
+    }
+
+    return results;
+  }
+}

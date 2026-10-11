@@ -13,6 +13,8 @@ export interface SearchProductResult {
   projectedDiscount: number;
   isRealAmazonProduct: boolean;
   specs?: string[];
+  retailer?: 'Amazon' | 'Best Buy'; // defaults to Amazon
+  isLiveResult?: boolean; // found by live search: real listing, price not read yet
 }
 
 // Product catalog. Entries with isRealAmazonProduct: true had their ASIN checked against the live

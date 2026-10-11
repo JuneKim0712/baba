@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -28,6 +28,8 @@ function SearchContent() {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchProductResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const latestSearch = useRef(0);
 
   // Filters and Sort State
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -49,11 +51,57 @@ function SearchContent() {
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
     };
 
+    const searchId = ++latestSearch.current;
+
     setTimeout(() => {
       const items = searchProducts(searchTerm || 'ram', filterOptions);
       setResults(items);
       setLoading(false);
     }, 120);
+
+    // Real Amazon and Best Buy listings for the query. They carry no price or category yet,
+    // so they are only merged in when no filter or sort is applied.
+    const term = searchTerm.trim();
+    const unfiltered = categoryFilter === 'All' && sortBy === 'relevance' && !minPrice && !maxPrice;
+    if (term.length < 3 || !unfiltered) {
+      setLiveLoading(false);
+      return;
+    }
+
+    setLiveLoading(true);
+    fetch(`/api/search?q=${encodeURIComponent(term)}`)
+      .then(res => (res.ok ? res.json() : { results: [] }))
+      .then(data => {
+        if (searchId !== latestSearch.current) return;
+        const liveResults: SearchProductResult[] = (data.results || []).map((r: any) => ({
+          id: `live-${r.retailer}-${r.productId}`,
+          asin: r.productId,
+          title: r.title,
+          description: r.description,
+          price: 0,
+          originalPrice: 0,
+          rating: 0,
+          reviewsCount: 0,
+          category: 'Live listing',
+          image: '',
+          amazonUrl: r.url,
+          projectedDiscount: 0,
+          isRealAmazonProduct: r.retailer === 'amazon',
+          retailer: r.retailer === 'bestbuy' ? 'Best Buy' : 'Amazon',
+          isLiveResult: true
+        }));
+        if (liveResults.length === 0) return;
+        // Real listings first, then catalog matches; invented suggestions are dropped
+        const liveIds = new Set(liveResults.map(r => r.asin));
+        setResults(current => [
+          ...liveResults,
+          ...current.filter(r => !r.isLiveResult && !r.id.startsWith('auto-') && !liveIds.has(r.asin))
+        ].slice(0, 15));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (searchId === latestSearch.current) setLiveLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -81,13 +129,14 @@ function SearchContent() {
           email: user.email || 'shopper@example.com',
           userId: user.uid,
           targetType: 'asin',
-          targetValue: product.asin,
+          targetValue: product.isLiveResult ? product.amazonUrl : product.asin,
           productTitle: product.title,
-          targetPrice: Number((product.price * 0.9).toFixed(2)),
+          targetPrice: product.price ? Number((product.price * 0.9).toFixed(2)) : null,
           triggerOnPredictedDrop: true,
         }),
       });
       if (!res.ok) throw new Error('Alert was not saved');
+      const saved_alert = (await res.json()).alert || {};
 
       const saved = localStorage.getItem('price_oracle_alerts');
       const existing = saved ? JSON.parse(saved) : [];
@@ -96,8 +145,8 @@ function SearchContent() {
         targetType: 'asin',
         targetValue: product.asin,
         productTitle: product.title,
-        currentPriceAtCreation: product.price,
-        targetPrice: Number((product.price * 0.9).toFixed(2)),
+        currentPriceAtCreation: saved_alert.currentPriceAtCreation || product.price,
+        targetPrice: product.price ? Number((product.price * 0.9).toFixed(2)) : null,
         triggerOnPredictedDrop: true,
         status: 'active',
         createdAt: new Date().toISOString(),
@@ -219,6 +268,13 @@ function SearchContent() {
           </div>
         </div>
 
+        {liveLoading && !loading && (
+          <p className="mb-4 flex items-center space-x-2 text-xs font-semibold text-slate-500">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+            <span>Checking Amazon and Best Buy for live listings...</span>
+          </p>
+        )}
+
         {/* Top 10+ Detailed Results List */}
         {loading ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-slate-200">
@@ -247,27 +303,27 @@ function SearchContent() {
                       <span className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center shadow-md">
                         {index + 1}
                       </span>
-                      <img
+                      {product.image && <img
                         src={product.image}
                         alt={product.title}
                         className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-2xl border border-slate-200 shadow-sm"
-                      />
+                      />}
                     </div>
 
                     {/* Middle: Detailed Specifications & Information */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                          ASIN: {product.asin}
+                          {product.retailer === 'Best Buy' ? 'SKU' : 'ASIN'}: {product.asin}
                         </span>
                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                           {product.category}
                         </span>
-                        <div className="flex items-center text-xs text-amber-500 font-bold space-x-1">
+                        {!product.isLiveResult && <div className="flex items-center text-xs text-amber-500 font-bold space-x-1">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                           <span>{product.rating}</span>
                           <span className="text-slate-400 font-medium">({product.reviewsCount.toLocaleString()} reviews)</span>
-                        </div>
+                        </div>}
                       </div>
 
                       <h3 className="font-extrabold text-base sm:text-lg text-slate-900 leading-snug">
@@ -296,6 +352,11 @@ function SearchContent() {
 
                   {/* Right: Pricing & Action Controls */}
                   <div className="w-full md:w-auto flex md:flex-col items-center md:items-end justify-between pt-4 md:pt-0 border-t md:border-t-0 border-slate-100 gap-3 shrink-0">
+                    {product.isLiveResult ? (
+                      <p className="text-left md:text-right text-xs font-semibold text-slate-500 max-w-[14rem]">
+                        Live {product.retailer} listing. The current price is read when you set an alert.
+                      </p>
+                    ) : (
                     <div className="text-left md:text-right">
                       <div className="flex items-baseline space-x-2">
                         <span className="text-2xl sm:text-3xl font-black text-slate-900">
@@ -312,6 +373,7 @@ function SearchContent() {
                         <span>-{product.projectedDiscount}% expected drop in 30 days</span>
                       </div>
                     </div>
+                    )}
 
                     <div className="flex items-center space-x-2">
                       {/* Accurate Amazon Link */}
@@ -320,9 +382,9 @@ function SearchContent() {
                         target="_blank"
                         rel="noreferrer"
                         className="px-3 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-semibold text-xs transition flex items-center space-x-1"
-                        title="Open on Amazon"
+                        title={`Open on ${product.retailer || 'Amazon'}`}
                       >
-                        <span>View on Amazon</span>
+                        <span>View on {product.retailer || 'Amazon'}</span>
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                       </a>
 

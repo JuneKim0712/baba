@@ -33,6 +33,10 @@
       {
         "source": "/api/run-alert-check{,/**}",
         "function": { "functionId": "runAlertCheckNow", "region": "us-central1" }
+      },
+      {
+        "source": "/api/search{,/**}",
+        "function": { "functionId": "searchLive", "region": "us-central1" }
       }
     ]
   },

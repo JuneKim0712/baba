@@ -1,6 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { extractAmazonContext, extractBestBuyContext } from '../../lib/context-dev';
+import { extractAmazonContext, extractBestBuyContext, searchRetailers } from '../../lib/context-dev';
 import { calculatePriceProjection } from '../../lib/projection-engine';
 import { runAlertCheck } from './tracker-cron';
 
@@ -143,6 +143,27 @@ export const runAlertCheckNow = onRequest({ timeoutSeconds: 300 }, async (req, r
     res.json({ success: true, result: await runAlertCheck(alertId) });
   } catch (err: any) {
     console.error('Alert check error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Live product search across Amazon and Best Buy. Responses are cached at the CDN,
+// because every uncached search spends a context.dev credit.
+export const searchLive = onRequest(async (req, res) => {
+  try {
+    const query = String(req.query.q || '').trim();
+
+    if (query.length < 3 || query.length > 120) {
+      res.status(400).json({ error: 'Search query must be between 3 and 120 characters' });
+      return;
+    }
+
+    const results = await searchRetailers(query, process.env.CONTEXT_DEV_API_KEY);
+
+    res.set('Cache-Control', 'public, max-age=600, s-maxage=3600');
+    res.json({ success: true, results });
+  } catch (err: any) {
+    console.error('Search error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

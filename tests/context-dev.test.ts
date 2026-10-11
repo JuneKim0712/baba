@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractAmazonContext, extractBestBuyContext, scrapeProduct } from '../lib/context-dev';
+import { extractAmazonContext, extractBestBuyContext, scrapeProduct, parseRetailProductUrl, searchRetailers } from '../lib/context-dev';
 
 const scrapeResponse = (product: unknown, ok = true) => ({
   ok,
@@ -187,5 +187,67 @@ describe('extractBestBuyContext', () => {
 
     fetchMock.mockResolvedValueOnce(scrapeResponse({ ...product, price: null }));
     expect(await extractBestBuyContext('6447382')).toBeNull();
+  });
+});
+
+describe('parseRetailProductUrl', () => {
+  it.each([
+    ['https://www.amazon.com/G-SKILL-6000MT-Desktop-Computer/dp/B0DN43PTB9', 'B0DN43PTB9'],
+    ['https://www.amazon.com/clp/B0C1TKSDKR', 'B0C1TKSDKR'],
+    ['https://www.amazon.com/dp/B0CBL2YGYP?tag=synack-20&linkCode=osi&th=1&psc=1', 'B0CBL2YGYP'],
+    ['https://www.amazon.com/gp/product/b08n5wrwnw/', 'B08N5WRWNW'],
+  ])('reads the ASIN from %s and returns a clean product link', (url, asin) => {
+    expect(parseRetailProductUrl(url)).toEqual({ retailer: 'amazon', productId: asin, url: `https://www.amazon.com/dp/${asin}` });
+  });
+
+  it('reads the SKU from a Best Buy URL', () => {
+    expect(parseRetailProductUrl('https://www.bestbuy.com/site/apple-airpods-pro/6447382.p?skuId=6447382')).toEqual({
+      retailer: 'bestbuy',
+      productId: '6447382',
+      url: 'https://www.bestbuy.com/site/6447382.p?skuId=6447382'
+    });
+  });
+
+  it('returns null for pages that are not a product we can price-check', () => {
+    expect(parseRetailProductUrl('https://www.amazon.com/s?k=ddr5+ram')).toBeNull();
+    expect(parseRetailProductUrl('https://www.amazon.com/stores/GSKILL/page/ABC')).toBeNull();
+    expect(parseRetailProductUrl('https://www.bestbuy.com/product/g-skill-flare-x5-8gb/J3ZYG2T5Q9')).toBeNull();
+    expect(parseRetailProductUrl('https://www.newegg.com/p/N82E16820374424')).toBeNull();
+    expect(parseRetailProductUrl('https://notamazon.com.evil.example/dp/B0DN43PTB9')).toBeNull();
+  });
+});
+
+describe('searchRetailers', () => {
+  const searchResponse = (results: unknown[], ok = true) => ({ ok, status: ok ? 200 : 500, headers: { get: () => null }, json: async () => ({ results }) });
+
+  it('searches only Amazon and Best Buy', async () => {
+    fetchMock.mockResolvedValue(searchResponse([]));
+
+    await searchRetailers('ddr5 ram', 'abc');
+
+    const [endpoint, init] = fetchMock.mock.calls[0];
+    expect(endpoint).toBe('https://api.context.dev/v1/web/search');
+    expect(init.headers.Authorization).toBe('Bearer abc');
+    expect(JSON.parse(init.body)).toMatchObject({ query: 'ddr5 ram', includeDomains: ['amazon.com', 'bestbuy.com'] });
+  });
+
+  it('keeps product pages, drops everything else, and removes duplicates', async () => {
+    fetchMock.mockResolvedValue(searchResponse([
+      { url: 'https://www.amazon.com/clp/B0C1TKSDKR', title: 'Amazon.com: G.SKILL Flare X5 32GB', description: 'Fast DDR5' },
+      { url: 'https://www.amazon.com/G-SKILL/dp/B0C1TKSDKR?th=1', title: 'G.SKILL Flare X5 32GB (duplicate)', description: '' },
+      { url: 'https://www.amazon.com/s?k=flare+x5', title: 'Search page', description: '' },
+      { url: 'https://www.bestbuy.com/site/g-skill/6505727.p?skuId=6505727', title: 'G.SKILL Flare X5 - Best Buy', description: '' },
+    ]));
+
+    expect(await searchRetailers('flare x5', 'abc')).toEqual([
+      { retailer: 'amazon', productId: 'B0C1TKSDKR', url: 'https://www.amazon.com/dp/B0C1TKSDKR', title: 'G.SKILL Flare X5 32GB', description: 'Fast DDR5' },
+      { retailer: 'bestbuy', productId: '6505727', url: 'https://www.bestbuy.com/site/6505727.p?skuId=6505727', title: 'G.SKILL Flare X5', description: '' },
+    ]);
+  });
+
+  it('returns no results when the search API fails', async () => {
+    fetchMock.mockResolvedValue(searchResponse([], false));
+
+    expect(await searchRetailers('flare x5', 'abc')).toEqual([]);
   });
 });
