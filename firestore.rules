@@ -7,7 +7,7 @@ service cloud.firestore {
     }
     match /alerts/{alertId} {
       allow create: if true;
-      allow read, update: if false;
+      allow read, update, delete: if request.auth != null;
     }
     match /tracked_deals/{dealId} {
       allow read: if true;
