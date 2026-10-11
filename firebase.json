@@ -57,6 +57,10 @@
       {
         "source": "/api/forecast{,/**}",
         "function": { "functionId": "forecastPrice", "region": "us-central1" }
+      },
+      {
+        "source": "/api/insight{,/**}",
+        "function": { "functionId": "productInsight", "region": "us-central1" }
       }
     ]
   },

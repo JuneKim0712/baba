@@ -1,6 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { extractAmazonContext, extractBestBuyContext, searchRetailers } from '../../lib/context-dev';
+import { extractAmazonContext, extractBestBuyContext, searchRetailers, researchProduct } from '../../lib/context-dev';
 import { getForecast } from './forecast';
 import { runAlertCheck } from './tracker-cron';
 import { sendCategoryAlertNotice } from './email-service';
@@ -248,6 +248,32 @@ export const myAlerts = onRequest(async (req, res) => {
     res.json({ success: true });
   } catch (err: any) {
     console.error('My alerts error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Market check by a research agent for one product. Cached for a day at the CDN,
+// because each uncached run spends about 10 context.dev credits.
+export const productInsight = onRequest({ timeoutSeconds: 60 }, async (req, res) => {
+  try {
+    const title = String(req.query.q || '').trim();
+
+    if (title.length < 5 || title.length > 200) {
+      res.status(400).json({ error: 'Product name must be between 5 and 200 characters' });
+      return;
+    }
+
+    const insight = await researchProduct(title, process.env.CONTEXT_DEV_API_KEY);
+
+    if (!insight) {
+      res.status(502).json({ success: false, error: 'The market check did not return an answer. Try again.' });
+      return;
+    }
+
+    res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    res.json({ success: true, insight });
+  } catch (err: any) {
+    console.error('Insight error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

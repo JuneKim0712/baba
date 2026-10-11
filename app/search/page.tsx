@@ -34,6 +34,22 @@ function SearchContent() {
   const [liveLoading, setLiveLoading] = useState(false);
   const latestSearch = useRef(0);
   const forecasts = useForecasts(results);
+  // Research-agent market checks, run on request per product
+  const [insights, setInsights] = useState<Record<string, { loading?: boolean; error?: string; outlook?: string; summary?: string; sources?: string[] }>>({});
+
+  const handleMarketCheck = async (product: SearchProductResult) => {
+    setInsights(current => ({ ...current, [product.id]: { loading: true } }));
+    try {
+      const res = await fetch(`/api/insight?q=${encodeURIComponent(product.title.replace(/[.]{3}$/, '').trim())}`);
+      const data = await res.json();
+      setInsights(current => ({
+        ...current,
+        [product.id]: data.insight || { error: data.error || 'The market check failed. Try again.' }
+      }));
+    } catch {
+      setInsights(current => ({ ...current, [product.id]: { error: 'The market check failed. Try again.' } }));
+    }
+  };
   // Forecasts for live listings, known once an alert has read their price
   const [alertForecasts, setAlertForecasts] = useState<Record<string, { price: number; forecast: ProjectionResult }>>({});
 
@@ -303,8 +319,9 @@ function SearchContent() {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col gap-4"
                 >
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   {/* Left: Thumbnail & Rank */}
                   <div className="flex items-start space-x-5 flex-1 min-w-0">
                     <div className="relative shrink-0">
@@ -400,6 +417,16 @@ function SearchContent() {
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                       </a>
 
+                      <button
+                        onClick={() => handleMarketCheck(product)}
+                        disabled={insights[product.id]?.loading}
+                        className="px-3 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-semibold text-xs transition flex items-center space-x-1"
+                        title="A research agent reads current news and price trackers for this product (about 20 seconds)"
+                      >
+                        {insights[product.id]?.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-emerald-600" />}
+                        <span>{insights[product.id]?.loading ? 'Researching...' : 'AI market check'}</span>
+                      </button>
+
                       {/* Side Set Alert Button */}
                       <button
                         onClick={() => handleSetAlert(product)}
@@ -433,6 +460,33 @@ function SearchContent() {
                       </button>
                     </div>
                   </div>
+                  </div>
+
+                  {insights[product.id] && !insights[product.id].loading && (
+                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
+                      {insights[product.id].error ? (
+                        <p className="text-rose-700 font-semibold">{insights[product.id].error}</p>
+                      ) : (
+                        <>
+                          <p className="font-bold text-slate-900">
+                            AI market check: {{ drop: 'price likely to drop', rise: 'price likely to rise', stable: 'price likely stable' }[insights[product.id].outlook as string] || 'no clear direction'} in the next 30 days
+                          </p>
+                          <p className="mt-1 leading-relaxed">{insights[product.id].summary}</p>
+                          {(insights[product.id].sources || []).length > 0 && (
+                            <p className="mt-2 text-xs text-slate-500">
+                              Sources:{' '}
+                              {(insights[product.id].sources || []).map((src, i) => (
+                                <a key={src} href={src} target="_blank" rel="noreferrer" className="underline hover:text-slate-700 mr-2">
+                                  {(() => { try { return new URL(src).hostname.replace('www.', ''); } catch { return `source ${i + 1}`; } })()}
+                                </a>
+                              ))}
+                            </p>
+                          )}
+                          <p className="mt-2 text-[11px] text-slate-400">Written by a research agent from public web pages. It is separate from the price model and can be wrong.</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

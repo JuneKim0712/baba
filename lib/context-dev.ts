@@ -180,3 +180,48 @@ export async function searchRetailers(query: string, apiKey: string): Promise<Re
     return results;
   }
 }
+
+export interface ProductInsight {
+  outlook: 'drop' | 'rise' | 'stable' | 'unknown';
+  summary: string;
+  keyFactors: string[];
+  sources: string[];
+}
+
+// Asks context.dev's research agent whether a product's price is likely to move in the next
+// 30 days. The agent searches and reads the web itself; this costs about 10 credits a call.
+export async function researchProduct(title: string, apiKey: string): Promise<ProductInsight | null> {
+  const res = await fetch('https://api.context.dev/v1/web/answers', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      mode: 'fast',
+      task: `For a shopper deciding whether to buy "${title}" now or wait: is its US retail price likely to drop, rise, or stay stable over the next 30 days? Consider upcoming sale events, a newer replacement model, and recent price trends.`,
+      json_format: {
+        outlook: 'drop | rise | stable | unknown',
+        summary: 'two plain sentences for a shopper',
+        keyFactors: ['short factor']
+      },
+      timeoutOpts: { milliseconds: 45000, behavior: 'return-partial' }
+    })
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const answer = data?.json_content;
+  if (!answer?.summary) return null;
+
+  const outlookText = String(answer.outlook || '').toLowerCase();
+  const outlook = (['drop', 'rise', 'stable'] as const).find(o => outlookText.includes(o)) || 'unknown';
+
+  return {
+    outlook,
+    summary: String(answer.summary),
+    keyFactors: Array.isArray(answer.keyFactors) ? answer.keyFactors.map(String).slice(0, 5) : [],
+    sources: Array.isArray(data.sources) ? data.sources.map(String).slice(0, 5) : []
+  };
+}
