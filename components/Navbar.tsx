@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Sparkles, Bell, ArrowRight, LogIn, LogOut, User } from 'lucide-react';
+import { Sparkles, Bell, ArrowRight, LogIn, LogOut, User, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 interface NavbarProps {
@@ -26,6 +26,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAlertModal }) => {
         </Link>
 
         <div className="flex items-center space-x-2 sm:space-x-4">
+          <Link
+            href="/search?q=ram"
+            className="flex items-center space-x-1.5 text-sm font-semibold text-slate-700 hover:text-emerald-600 px-3 py-2 rounded-lg transition"
+          >
+            <Search className="w-4 h-4 text-emerald-600" />
+            <span>Search</span>
+          </Link>
+
           <Link
             href="/alerts"
             className="flex items-center space-x-1.5 text-sm font-semibold text-slate-700 hover:text-emerald-600 px-3 py-2 rounded-lg transition"

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Sparkles, Check, Star, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { searchProductsLocally, SearchProductResult } from '@/lib/search-service';
+import { searchProducts, SearchProductResult } from '@/lib/search-service';
 
 export type ProductResult = SearchProductResult;
 
@@ -42,7 +42,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
 
     setLoadingSearch(true);
     const timer = setTimeout(() => {
-      const items = searchProductsLocally(query);
+      const items = searchProducts(query);
       setResults(items);
       setShowDropdown(true);
       setLoadingSearch(false);
@@ -260,10 +260,13 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
             );
           })}
 
-          <div className="p-3 bg-slate-50 text-center text-xs text-slate-500 font-medium">
-            <span>Want to track something custom? </span>
-            <a href="/alerts/" className="font-bold text-emerald-600 hover:underline">
-              View all monitored items in My Alerts &rarr;
+          <div className="p-3 bg-slate-50 text-center text-xs text-slate-500 font-medium flex items-center justify-center space-x-4">
+            <a href={`/search?q=${encodeURIComponent(query)}`} className="font-bold text-emerald-600 hover:underline">
+              View all 15+ detailed results on Search Page &rarr;
+            </a>
+            <span>•</span>
+            <a href="/alerts/" className="text-slate-600 hover:underline">
+              My Alerts Watchlist
             </a>
           </div>
         </div>
