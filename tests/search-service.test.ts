@@ -83,6 +83,16 @@ describe('searchProducts', () => {
     expect(results[0].amazonUrl).toBe('https://www.amazon.com/dp/B000000001');
   });
 
+  it('handles queries containing regex characters such as parentheses', () => {
+    const results = searchProducts('G.SKILL Flare X5 Series DDR5 RAM (AMD EXPO)');
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].category).toBe('Computer Memory');
+    for (const q of ['c++ book', 'usb-c [2 pack]', '50% off?', 'a|b', 'back' + String.fromCharCode(92) + 'slash', '$5 * 2 ^ {x}']) {
+      expect(() => searchProducts(q)).not.toThrow();
+    }
+  });
+
   it('never returns more than 15 results', () => {
     for (const q of ['ram', 'a', 'apple', 'hair', 'zzzz unknown thing']) {
       expect(searchProducts(q).length).toBeLessThanOrEqual(15);

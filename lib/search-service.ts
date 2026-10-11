@@ -321,7 +321,9 @@ export function searchProducts(
       }
 
       // Title word boundary match
-      const wordRegex = new RegExp(`\\b${token}\\b`, 'i');
+      // Escape regex characters so queries like "(AMD EXPO)" cannot produce an invalid pattern
+      const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const wordRegex = new RegExp(`\\b${escapedToken}\\b`, 'i');
       if (wordRegex.test(titleLower)) score += 40;
       else if (titleLower.includes(token)) score += 20;
 
