@@ -68,9 +68,8 @@ export function renderAlertEmail(payload: AlertEmailPayload) {
   };
 }
 
-export async function sendPriceAlertEmail(payload: AlertEmailPayload): Promise<EmailStatus> {
+async function sendEmail(to: string, subject: string, html: string, simulationNote: string): Promise<EmailStatus> {
   const apiKey = process.env.RESEND_API_KEY;
-  const { subject, html } = renderAlertEmail(payload);
 
   if (apiKey && apiKey.startsWith('re_') && apiKey !== 're_demo_key') {
     try {
@@ -82,7 +81,7 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload): Promise<E
         },
         body: JSON.stringify({
           from: process.env.ALERT_FROM_EMAIL || 'PriceOracle <alerts@priceoracle.app>',
-          to: payload.to,
+          to,
           subject,
           html
         })
@@ -91,14 +90,48 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload): Promise<E
         console.error(`[Email] Resend rejected the email (${res.status}):`, await res.text());
         return 'failed';
       }
-      console.log(`[Email] Alert sent to ${payload.to}`);
+      console.log(`[Email] Sent to ${to}: ${subject}`);
       return 'sent';
     } catch (e) {
       console.error('[Email] Failed to send via Resend:', e);
       return 'failed';
     }
   } else {
-    console.log(`[Email-Simulation] Dispatched simulated email to ${payload.to} for ${payload.retailer}:${payload.productId}`);
+    console.log(`[Email-Simulation] Dispatched simulated email to ${to} for ${simulationNote}`);
     return 'simulated';
   }
+}
+
+export async function sendPriceAlertEmail(payload: AlertEmailPayload): Promise<EmailStatus> {
+  const { subject, html } = renderAlertEmail(payload);
+  return sendEmail(payload.to, subject, html, `${payload.retailer}:${payload.productId}`);
+}
+
+// Category and keyword alerts are saved but not price-checked yet, so tell the subscriber where things stand
+export async function sendCategoryAlertNotice(to: string, category: string): Promise<EmailStatus> {
+  const safeCategory = category.replace(/[<>&]/g, '');
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
+      <div style="background: #10b981; padding: 12px 18px; border-radius: 12px; color: white; font-weight: bold; font-size: 14px; display: inline-block;">
+        PriceOracle Sentinel
+      </div>
+
+      <h2 style="color: #0f172a; margin-top: 18px; font-size: 20px;">Your ${safeCategory} alert is saved. Category tracking is a work in progress.</h2>
+
+      <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+        We have recorded your alert for <strong>${safeCategory}</strong>, but category-wide price tracking is still being built, so this alert will not send price drops yet.
+      </p>
+
+      <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+        Alerts on a specific Amazon or Best Buy product work today: paste the product link on PriceOracle and we will email you when it reaches your target price.
+      </p>
+
+      <hr style="margin: 32px 0 16px 0; border: none; border-top: 1px solid #e2e8f0;" />
+      <p style="font-size: 11px; color: #94a3b8;">
+        Sent automatically by PriceOracle Alertant.
+      </p>
+    </div>
+  `;
+
+  return sendEmail(to, `Your ${safeCategory} alert is saved (category tracking is in progress)`, html, `category:${safeCategory}`);
 }

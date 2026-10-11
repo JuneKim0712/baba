@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { fetchMyAlerts, changeMyAlert } from '@/lib/alerts-api';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { QuickAlertBar } from '@/components/QuickAlertBar';
@@ -76,6 +77,13 @@ export default function AlertsPage() {
     }
   }, []);
 
+  // Signed-in users see the alerts stored in the database, on any device
+  useEffect(() => {
+    fetchMyAlerts(user).then(serverAlerts => {
+      if (serverAlerts) saveAlerts(serverAlerts as AlertItem[]);
+    });
+  }, [user]);
+
   const saveAlerts = (newAlerts: AlertItem[]) => {
     setAlerts(newAlerts);
     localStorage.setItem('price_oracle_alerts', JSON.stringify(newAlerts));
@@ -84,6 +92,7 @@ export default function AlertsPage() {
   const handleDelete = (id: string) => {
     const updated = alerts.filter(a => a.id !== id);
     saveAlerts(updated);
+    changeMyAlert(user, { action: 'delete', alertId: id });
   };
 
   const handleToggleStatus = (id: string) => {
@@ -97,6 +106,8 @@ export default function AlertsPage() {
       return a;
     });
     saveAlerts(updated);
+    const toggled = updated.find(a => a.id === id);
+    if (toggled) changeMyAlert(user, { action: 'update', alertId: id, status: toggled.status as 'active' | 'paused' });
   };
 
   const handleStartEdit = (alert: AlertItem) => {
@@ -117,10 +128,16 @@ export default function AlertsPage() {
       return a;
     });
     saveAlerts(updated);
+    changeMyAlert(user, { action: 'update', alertId: id, targetPrice: editPrice ? parseFloat(editPrice) : null, productTitle: editTitle });
     setEditingId(null);
   };
 
-  const handleReload = () => {
+  const handleReload = async () => {
+    const serverAlerts = await fetchMyAlerts(user);
+    if (serverAlerts) {
+      saveAlerts(serverAlerts as AlertItem[]);
+      return;
+    }
     const saved = localStorage.getItem('price_oracle_alerts');
     if (saved) {
       setAlerts(JSON.parse(saved));

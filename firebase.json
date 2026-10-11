@@ -37,6 +37,10 @@
       {
         "source": "/api/search{,/**}",
         "function": { "functionId": "searchLive", "region": "us-central1" }
+      },
+      {
+        "source": "/api/my-alerts{,/**}",
+        "function": { "functionId": "myAlerts", "region": "us-central1" }
       }
     ]
   },

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { X, Bell, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { authHeaders } from '@/lib/alerts-api';
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { user } = useAuth();
 
   if (!isOpen) return null;
 
@@ -31,7 +34,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
     try {
       const res = await fetch('/api/create-alert', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders(user)) },
         body: JSON.stringify({
           email,
           targetType,

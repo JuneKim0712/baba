@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Sparkles, Check, Star, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { authHeaders } from '@/lib/alerts-api';
 import { searchProducts, SearchProductResult } from '@/lib/search-service';
 
 export type ProductResult = SearchProductResult;
@@ -65,10 +66,9 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
       // 1. Post to backend
       const res = await fetch('/api/create-alert', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders(user)) },
         body: JSON.stringify({
           email: user.email || 'shopper@example.com',
-          userId: user.uid,
           targetType: 'asin',
           targetValue: product.asin,
           productTitle: product.title,

@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { searchProducts, SearchProductResult, SearchFilterOptions } from '@/lib/search-service';
 import { useAuth } from '@/lib/auth-context';
+import { authHeaders } from '@/lib/alerts-api';
 import {
   Search,
   Bell,
@@ -124,10 +125,9 @@ function SearchContent() {
     try {
       const res = await fetch('/api/create-alert', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders(user)) },
         body: JSON.stringify({
           email: user.email || 'shopper@example.com',
-          userId: user.uid,
           targetType: 'asin',
           targetValue: product.isLiveResult ? product.amazonUrl : product.asin,
           productTitle: product.title,

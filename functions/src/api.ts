@@ -3,12 +3,25 @@ import * as admin from 'firebase-admin';
 import { extractAmazonContext, extractBestBuyContext, searchRetailers } from '../../lib/context-dev';
 import { calculatePriceProjection } from '../../lib/projection-engine';
 import { runAlertCheck } from './tracker-cron';
+import { sendCategoryAlertNotice } from './email-service';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const db = admin.firestore();
+
+// The signed-in user's uid, proven by their Firebase ID token, or null
+async function getVerifiedUid(req: { get(name: string): string | undefined }): Promise<string | null> {
+  const header = req.get('Authorization') || '';
+  if (!header.startsWith('Bearer ')) return null;
+
+  try {
+    return (await admin.auth().verifyIdToken(header.slice('Bearer '.length))).uid;
+  } catch {
+    return null;
+  }
+}
 
 export const createAlert = onRequest(async (req, res) => {
   if (req.method !== 'POST') {
@@ -19,7 +32,6 @@ export const createAlert = onRequest(async (req, res) => {
   try {
     const {
       email,
-      userId,
       targetType, // 'asin' | 'sku' | 'category' | 'keyword'
       targetValue, // URL, ASIN, Best Buy SKU, or category name
       targetPrice,
@@ -66,7 +78,7 @@ export const createAlert = onRequest(async (req, res) => {
 
     const alertDoc = {
       email: email.toLowerCase().trim(),
-      userId: userId || null,
+      userId: await getVerifiedUid(req),
       targetType: isBestBuy ? 'sku' : targetType || (targetValue.includes('amazon.com') ? 'asin' : 'category'),
       targetValue: productId || targetValue,
       retailer,
@@ -81,7 +93,11 @@ export const createAlert = onRequest(async (req, res) => {
     };
 
     const docRef = await db.collection('alerts').add(alertDoc);
-    res.json({ success: true, alertId: docRef.id, alert: alertDoc });
+
+    // Category and keyword alerts are not price-checked yet; say so instead of going silent
+    const notice = productDetails ? null : await sendCategoryAlertNotice(alertDoc.email, String(targetValue));
+
+    res.json({ success: true, alertId: docRef.id, alert: alertDoc, notice });
   } catch (err: any) {
     console.error('Alert creation error:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -164,6 +180,68 @@ export const searchLive = onRequest(async (req, res) => {
     res.json({ success: true, results });
   } catch (err: any) {
     console.error('Search error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// The signed-in user's own alerts: GET lists them, POST updates or deletes one
+export const myAlerts = onRequest(async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+
+  try {
+    const uid = await getVerifiedUid(req);
+    if (!uid) {
+      res.status(401).json({ error: 'Sign in required' });
+      return;
+    }
+
+    if (req.method === 'GET') {
+      const snapshot = await db.collection('alerts').where('userId', '==', uid).limit(200).get();
+      const alerts = snapshot.docs
+        .map(doc => {
+          const { email, userId, lastNotifiedAt, ...alert } = doc.data();
+          return { id: doc.id, ...alert };
+        })
+        .sort((a: any, b: any) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
+      res.json({ success: true, alerts });
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const { action, alertId, targetPrice, status, productTitle } = req.body || {};
+    const ref = db.collection('alerts').doc(String(alertId || '_'));
+    const doc = await ref.get();
+
+    if (!doc.exists || doc.data().userId !== uid) {
+      res.status(404).json({ error: 'Alert not found' });
+      return;
+    }
+
+    if (action === 'delete') {
+      await ref.delete();
+      res.json({ success: true });
+      return;
+    }
+
+    if (action !== 'update') {
+      res.status(400).json({ error: 'Unknown action' });
+      return;
+    }
+
+    const changes: Record<string, unknown> = {};
+    if (targetPrice !== undefined) changes.targetPrice = targetPrice ? Number(targetPrice) : null;
+    if (status === 'active' || status === 'paused') changes.status = status;
+    if (typeof productTitle === 'string' && productTitle.trim()) changes.productTitle = productTitle.trim().slice(0, 200);
+
+    await ref.update(changes);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('My alerts error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
