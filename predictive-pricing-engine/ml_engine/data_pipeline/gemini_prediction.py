@@ -29,8 +29,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Awaitable, Callable, Optional
 
-import aiohttp
-
 from ..config import GEMINI_BUDGET_S, GEMINI_CACHE_TTL_S
 
 BASE_URL = "https://api.gemini.com"
@@ -135,6 +133,8 @@ def build_macro_signals(events: list[dict]) -> dict[str, Optional[float]]:
 
 
 async def _default_fetch_json(url: str, params: dict) -> dict:
+    import aiohttp  # lazy: the deployed function uses the synchronous fetch in ml_engine.serving
+
     timeout = aiohttp.ClientTimeout(total=GEMINI_BUDGET_S)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url, params=params) as resp:

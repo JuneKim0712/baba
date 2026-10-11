@@ -78,7 +78,7 @@
    "Economics": 10,
    "Commodities": 18
   },
-  "fetched_at": "2026-10-11T22:13:00Z",
+  "fetched_at": "2026-10-11T22:37:29Z",
   "used_as_model_input": false,
   "note": ""
  },
@@ -112,10 +112,10 @@
   "No price history is available for this product; the forecast uses only the current price, list price, retailer, category and calendar."
  ],
  "timings_ms": {
-  "scrape": 3.7,
+  "scrape": 3.6,
   "history": 0.0,
-  "gemini": 3.8,
-  "features_and_inference": 1.38,
-  "total": 5.9
+  "gemini": 3.7,
+  "features_and_inference": 1.14,
+  "total": 5.2
  }
 }

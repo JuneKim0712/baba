@@ -11,8 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Optional, Sequence
 
-import lightgbm as lgb
 import numpy as np
+
+try:  # LightGBM is a training / research dependency; the deployed function serves ONNX
+    import lightgbm as lgb
+except ImportError:  # pragma: no cover
+    lgb = None
 
 from ..config import FEATURES, QUANTILE_NAMES, QUANTILES, WEIGHTS_DIR
 
@@ -78,6 +82,8 @@ class QuantileModel:
         if not meta_path.exists():
             raise ModelNotTrainedError(f"no trained weights in {directory}; run `python -m ml_engine.model.train`")
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if lgb is None:
+            raise ModelNotTrainedError("lightgbm is not installed; use ml_engine.serving (ONNX) instead")
         boosters = [lgb.Booster(model_file=str(directory / f"{name}.lgb.txt")) for name in QUANTILE_NAMES]
         return cls(boosters, meta["features"], meta.get("conformal_offsets"), meta)
 

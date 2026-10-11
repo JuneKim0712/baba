@@ -39,7 +39,9 @@ predictive-pricing-engine/
       synthetic.py                 the simulator (labelled; read its docstring)
   data/bls_cpi/                    REAL monthly CPI sub-indexes (164 KB)
   benchmarks/                      tests, recorded fixtures, results/*.json from the last run
-  scripts/                         fetch_bls_cpi.py, record_fixtures.py, live_smoke.py
+  main.py                          Firebase HTTPS function `forecastPrice` (ONNX, no scraping)
+  ml_engine/serving.py             the function's handler: features -> ONNX -> response
+  scripts/                         fetch_bls_cpi.py, record_fixtures.py, live_smoke.py, call_function_locally.py
 ```
 
 ## Running it
@@ -47,7 +49,7 @@ predictive-pricing-engine/
 ```bash
 cd predictive-pricing-engine
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt     # Windows; use .venv/bin/python elsewhere
+.venv/Scripts/python -m pip install -r requirements-dev.txt # Windows; use .venv/bin/python elsewhere
 
 .venv/Scripts/python -m ml_engine.model.train                # ~1 min: backtests, then writes weights
 .venv/Scripts/python -m ml_engine.model.export_onnx          # optional: ONNX files + parity report
@@ -166,7 +168,7 @@ the same columns; nothing else changes, and `training_data_is_synthetic` flips t
 * Decision rule, exactly as in the spec and in its order: `WAIT` if P50 < 0.95 x current or current
   >= P75; else `BUY NOW` if current <= P25 or P50 > 1.05 x current; else `FAIR PRICE`.
 
-## Benchmark results (run of 2026-10-11, `pytest benchmarks`: 74 passed, 2 failed, 1 skipped)
+## Benchmark results (run of 2026-10-11, `pytest benchmarks`: 98 passed, 2 failed, 1 skipped)
 
 Raw numbers are in `benchmarks/results/*.json`. Thresholds are the spec's and were not adjusted.
 
@@ -221,6 +223,133 @@ about 1-3 ms (budget 150 ms); one live end-to-end call on a context.dev cache hi
    context.dev plan with more concurrency, and even then an uncached scrape alone exceeds 15 s.
 2. **P5-P95 coverage >= 0.88 on real category data, 2015-2019 fold: 0.871.** The other three real
    folds pass (0.895-0.908).
+
+## Deployed function (`main.py`, Firebase Functions 2nd gen, Python 3.12)
+
+`main.py` exports one HTTPS function, `forecastPrice` (us-central1, 512 MB, 30 s timeout). It does
+**not** scrape and never calls context.dev: the Node functions scrape the product and post the
+price. It serves the ONNX weights with `onnxruntime` + `numpy` only (`requirements.txt`);
+LightGBM, pandas and aiohttp are research dependencies (`requirements-dev.txt`) and are not deployed.
+
+Request (POST, JSON):
+
+```json
+{"currentPrice": 249.69, "regularPrice": null, "category": null, "retailer": "bestbuy",
+ "title": "Apple - AirPods Pro 2", "productId": "6447382"}
+```
+
+Response:
+
+```json
+{"success": true, "forecast": {
+  "currentPrice": 249.69,
+  "quantiles": {"lowest": 206.43, "low": 245.99, "mid": 249.69, "high": 250.54, "highest": 297.81},
+  "projectedMid": 249.69, "deltaPercentMonth": 0.0, "recommendation": "FAIR PRICE",
+  "subtitle": "Within the model's typical 30-day range ($245.99 to $250.54)",
+  "confidence": null,
+  "model": {"name": "product_30d", "version": "2026-10-11-945d3da7", "trainedOn": "synthetic",
+            "trainedAt": "2026-10-11T22:10:04Z", "horizonDays": 30, "historyMode": "snapshot_only",
+            "category": "audio", "retailer": "bestbuy"},
+  "macro": {"source": "Gemini Prediction Markets", "signals": {"recession_probability": 0.035, "...": "..."},
+            "fetchedAt": "...", "usedByModel": false}}}
+```
+
+* Non-POST: 405 `{"success": false, "error": {"code": "method_not_allowed", ...}}`.
+* Missing, non-numeric or non-positive `currentPrice`, or a non-object body: 400.
+* `confidence` is always `null`. The model has not been validated on real prices, so there is no
+  honest basis for a number.
+* `macro` is the Gemini display block from a 15-minute in-memory cache. On a cold instance the first
+  request waits up to 1.5 s for Gemini; if Gemini fails or is slow, `macro` is `null`, the forecast is
+  still returned, and the lookup is retried at most once a minute. It never affects the forecast.
+* `productId` is accepted and unused today; it is the key a price-history lookup will use.
+
+### What the model sees when there is no price history (every product today)
+
+Of the 23 inputs, the function supplies 11 and leaves 12 as missing (NaN). Nothing is imputed with
+a default value; LightGBM/ONNX trees route a missing value down a learned "missing" branch, and 40%
+of training rows had history masked the same way.
+
+| Supplied | Source |
+| --- | --- |
+| `log_price` | `currentPrice` |
+| `price_ratio_to_regular` | `currentPrice / regularPrice`; missing when `regularPrice` is null or below the price |
+| `retailer_encoded` | `retailer` (amazon, bestbuy, newegg, pcpartpicker, bhphoto; anything else is "other") |
+| `product_category_encoded` | keyword match on `category` + `title`; "other" when nothing matches |
+| `event_days_to_major_sale`, `in_sale_window_now`, `target_in_sale_window`, `month` | today's date (UTC) and the sale calendar |
+| `category_cpi_3m_change`, `category_cpi_12m_change` | real BLS index of the category, as last published; missing for "other" |
+
+Missing: all ten price-history features, `is_first_party_seller`, and the two Gemini slots.
+
+What that produces, measured over a grid of 2,560 no-history requests per row (10 categories x 4
+retailers x 16 dates x 4 prices):
+
+| `regularPrice` | Median forecast vs current price | Recommendation | P5 / P95 around the current price |
+| --- | --- | --- | --- |
+| null | 0.0% in 84% of cases (range -3.1% to +0.1%) | FAIR PRICE 95.7%, WAIT 4.1%, BUY NOW 0.2% | P5 from -12% to -55% (median -18%); P95 from +2% to +45% (median +7%) |
+| equal to the price | +0.4% (range -1.7% to +0.5%) | FAIR PRICE 89%, BUY NOW 11% | similar |
+| 10% above the price | +9.5% | **BUY NOW 100%** | P5 about -7%, P95 about +17% |
+| 25% above the price | +24.6% | **BUY NOW 100%** | P5 about -2%, P95 about +28% |
+
+In plain terms:
+
+* **Without a list price, the forecast is "the price stays where it is", with an interval whose
+  width depends on category, retailer and how close a sale event is.** The recommendation is almost
+  always FAIR PRICE. It is a distribution, not a constant, but the point forecast carries no
+  product-specific information, because there is none to use.
+* **With a list price above the current price, the model predicts a return to the list price and
+  says BUY NOW every time.** That is the simulator's rule (a shown list price is the true
+  undiscounted price and promotions end within weeks). Real retailers often show a permanently
+  inflated strikethrough price, so on real products this will over-recommend BUY NOW for anything
+  displaying one. If that is not acceptable, send `regularPrice: null` from the Node side until the
+  model is retrained on real data.
+
+### Local testing and measurements
+
+```bash
+python -m venv venv && venv/Scripts/python -m pip install -r requirements.txt   # the slim deploy env
+venv/Scripts/python scripts/call_function_locally.py     # 3 examples, 400, 405, timings (live Gemini)
+.venv/Scripts/python -m pytest benchmarks/test_function.py
+```
+
+Measured on this Windows machine with only `requirements.txt` installed: imports about 0.6-0.7 s,
+model load about 0.16 s, warm request median 0.26 ms / p95 0.37 ms through the function wrapper.
+The first request on a new instance also waits for Gemini (0.8 s here, capped at 1.5 s). Estimated
+cold start once deployed: roughly 2-4 s (instance start plus about 1 s of imports and model load on a
+slower shared CPU, plus the Gemini lookup). That is an estimate, not a measurement.
+
+### Deploying (not done here)
+
+Uploaded source with the ignore list below: 43 files, 2.7 MB (five ONNX files are 2.45 MB of it).
+Installed dependencies are about 195 MB (onnxruntime 48 MB, numpy 34 MB, the rest is
+firebase-functions' own dependencies).
+
+```json
+{
+  "source": "predictive-pricing-engine",
+  "codebase": "ml",
+  "runtime": "python312",
+  "ignore": [
+    "venv", ".venv", ".cache", ".scratch", ".pytest_cache", "**/__pycache__",
+    "benchmarks", "scripts", "data/price_logs",
+    "**/*.lgb.txt", "ml_engine/model/weights/category_index_1m",
+    "requirements-dev.txt", "pytest.ini", "README.md", ".gitignore", ".gitattributes",
+    ".git", "firebase-debug.log", "firebase-debug.*.log"
+  ]
+}
+```
+
+Things to know before deploying:
+
+* The Firebase CLI needs a virtualenv named `venv` inside the source directory, with
+  `requirements.txt` installed, to discover the function (`python -m venv venv`, then pip install).
+  It is git-ignored and in the ignore list.
+* The function is created publicly invocable. It only computes, but anyone with the URL can call
+  it; restrict the invoker or add a shared secret if that matters.
+* The BLS files in `data/bls_cpi` are a snapshot (latest month: August 2026). After about 200 days
+  without a refresh the two category-trend inputs go missing and the forecast falls back to the
+  remaining inputs. Re-run `scripts/fetch_bls_cpi.py` and redeploy every few months.
+* Prime Day, Prime Big Deal Days and back-to-school use typical dates, not announced ones.
+* `data/bls_cpi` and `ml_engine/` must not be added to the ignore list; the function reads both.
 
 ## Integration with the site (nothing was deployed)
 

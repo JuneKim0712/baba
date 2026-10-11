@@ -2,9 +2,9 @@
  "scenario": "contextdev_cached_single_slot",
  "queries": 20,
  "scraper": "SIMULATED",
- "max_s": 13.579,
- "p95_s": 12.896,
- "p50_s": 7.111,
+ "max_s": 13.576,
+ "p95_s": 12.89,
+ "p50_s": 7.097,
  "ok": 20,
  "timeout": 0,
  "error": 0

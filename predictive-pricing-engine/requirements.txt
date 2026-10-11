@@ -1,16 +1,4 @@
-# runtime
-lightgbm==4.7.0
-numpy>=1.26
-pandas>=2.2
-aiohttp>=3.9
-
-# tests / benchmarks
-pytest>=8
-pytest-asyncio>=0.23
-
-# ONNX export + parity check (only needed for `python -m ml_engine.model.export_onnx`)
-onnxmltools==1.16.0
-onnxruntime>=1.20
-onnx
-scikit-learn
-skl2onnx
+# Deployed function (main.py). Versions are the ones tested locally on Python 3.12.
+firebase-functions==0.6.0
+onnxruntime==1.31.0
+numpy==2.5.4

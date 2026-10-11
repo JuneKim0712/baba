@@ -2,9 +2,9 @@
  "gemini_cached_ms": 0.0002,
  "timings_ms": {
   "gemini": 0.0,
-  "scrape": 0.7,
+  "scrape": 0.6,
   "history": 0.0,
-  "features_and_inference": 1.01,
-  "total": 1.9
+  "features_and_inference": 1.0,
+  "total": 1.7
  }
 }
