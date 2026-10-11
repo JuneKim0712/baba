@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
+import { QuickAlertBar } from '@/components/QuickAlertBar';
 import { ExtensionDemoWidget } from '@/components/ExtensionDemoWidget';
 import { LiveDealsFeed } from '@/components/LiveDealsFeed';
 import { AlertModal } from '@/components/AlertModal';
@@ -25,6 +26,9 @@ export default function HomePage() {
       <div className="flex-1">
         {/* Hero Section */}
         <Hero onOpenAlertModal={() => handleOpenAlertModal()} />
+
+        {/* Quick Alert Notifier Bar (e.g., hair pin -> alert) */}
+        <QuickAlertBar />
 
         {/* Live Injected Extension Preview */}
         <ExtensionDemoWidget />
