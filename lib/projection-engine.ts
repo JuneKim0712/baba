@@ -58,7 +58,8 @@ export function calculatePriceProjection(
     subtitle = 'Currently trading near 30-day fair value';
   }
 
-  const confidence = Math.round(75 + Math.random() * 15);
+  // Deterministic so server-rendered and client-rendered values match
+  const confidence = Math.round(75 + discountProbability * 15);
 
   return {
     currentPrice,

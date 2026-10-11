@@ -33,13 +33,16 @@ async function checkRetailerDeals(retailer: Retailer) {
       const productId = alert.targetValue;
 
       // Extract latest price via context.dev
-      let currentPrice = alert.currentPriceAtCreation || 199.99;
+      let currentPrice = null;
       try {
         const product = await scrapeProduct(RETAILERS[retailer].productUrl(productId), contextApiKey);
         if (product?.price) currentPrice = product.price;
       } catch (e) {
-        console.warn(`[Cron] Fallback price check for ${productId}:`, e);
+        console.warn(`[Cron] Price check failed for ${productId}:`, e);
       }
+
+      // Never trigger on a price we could not read live
+      if (!currentPrice) continue;
 
       // Check threshold trigger
       const targetPrice = alert.targetPrice || (alert.currentPriceAtCreation ? alert.currentPriceAtCreation * 0.95 : null);

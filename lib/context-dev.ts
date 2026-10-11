@@ -36,12 +36,14 @@ export async function scrapeProduct(url: string, apiKey: string): Promise<Scrape
   return data?.product?.data?.product || null;
 }
 
-export async function extractAmazonContext(urlOrAsin: string): Promise<ExtractedProductContext> {
+// Returns null when no ASIN is found or the live price cannot be read
+export async function extractAmazonContext(urlOrAsin: string): Promise<ExtractedProductContext | null> {
   const apiKey = process.env.CONTEXT_DEV_API_KEY || 'ctxt_secret_7390b0f7f788470c85aa687254599803';
   
   // Extract ASIN from string if URL
   const asinMatch = urlOrAsin.match(/(?:dp|gp\/product)\/([A-Z0-9]{10})/i) || urlOrAsin.match(/^[A-Z0-9]{10}$/i);
-  const asin = asinMatch ? (asinMatch[1] || asinMatch[0]) : 'B0CX23V258';
+  if (!asinMatch) return null;
+  const asin = asinMatch[1] || asinMatch[0];
   const url = `https://www.amazon.com/dp/${asin}`;
 
   try {
@@ -58,32 +60,24 @@ export async function extractAmazonContext(urlOrAsin: string): Promise<Extracted
       };
     }
   } catch (err) {
-    console.warn('[context.dev] Fallback to simulated context', err);
+    console.warn('[context.dev] Product lookup failed', err);
   }
 
-  // Graceful fallback simulation
-  return {
-    asin,
-    title: 'Apple AirPods Pro (2nd Generation) Wireless Earbuds',
-    currentPrice: 189.99,
-    originalPrice: 249.00,
-    category: 'Electronics',
-    historicalMin: 169.00,
-    historicalMax: 249.00,
-    isAvailable: true
-  };
+  return null;
 }
 
 export interface ExtractedBestBuyContext extends Omit<ExtractedProductContext, 'asin'> {
   sku: string;
 }
 
-export async function extractBestBuyContext(urlOrSku: string): Promise<ExtractedBestBuyContext> {
+// Returns null when no SKU is found or the live price cannot be read
+export async function extractBestBuyContext(urlOrSku: string): Promise<ExtractedBestBuyContext | null> {
   const apiKey = process.env.CONTEXT_DEV_API_KEY;
 
   // Extract SKU from string if URL
   const skuMatch = urlOrSku.match(/(?:skuId=|\/sku\/|\/)(\d{7,8})(?:\.p)?(?:[/?&#]|$)/i) || urlOrSku.trim().match(/^\d{7,8}$/);
-  const sku = skuMatch ? (skuMatch[1] || skuMatch[0]) : '6447382';
+  if (!skuMatch) return null;
+  const sku = skuMatch[1] || skuMatch[0];
   const url = `https://www.bestbuy.com/site/${sku}.p?skuId=${sku}`;
 
   try {
@@ -100,18 +94,8 @@ export async function extractBestBuyContext(urlOrSku: string): Promise<Extracted
       };
     }
   } catch (err) {
-    console.warn('[context.dev] Fallback to simulated context', err);
+    console.warn('[context.dev] Product lookup failed', err);
   }
 
-  // Graceful fallback simulation
-  return {
-    sku,
-    title: 'Apple AirPods Pro (2nd Generation) Wireless Earbuds',
-    currentPrice: 189.99,
-    originalPrice: 249.00,
-    category: 'Electronics',
-    historicalMin: 169.00,
-    historicalMax: 249.00,
-    isAvailable: true
-  };
+  return null;
 }

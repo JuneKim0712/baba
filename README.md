@@ -64,7 +64,7 @@ npm run dev
 npm run build
 
 # 4. Test the site and /api endpoints locally (npm run dev alone has no /api; needs Java for the Firestore emulator)
-npm --prefix functions install && npm --prefix functions run build
+(cd functions && npm install && npm run build)
 npx firebase-tools emulators:start --only hosting,functions,firestore --project demo-baba
 
 # 5. Deploy to Firebase Hosting and Cloud Functions (the API and cron jobs live in functions)

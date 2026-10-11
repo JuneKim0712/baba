@@ -39,16 +39,23 @@ export const createAlert = onRequest(async (req, res) => {
     // Best Buy SKUs are 7-8 digits, so a bare one can never be mistaken for a 10-character ASIN
     const isBestBuy = targetType === 'sku' || targetValue.includes('bestbuy.com') || /^\d{7,8}$/.test(targetValue.trim());
 
+    const isAmazon = !isBestBuy && (targetType === 'asin' || targetValue.includes('amazon.com'));
+
     if (isBestBuy) {
       const bestBuyDetails = await extractBestBuyContext(targetValue);
       productDetails = bestBuyDetails;
-      productId = bestBuyDetails.sku;
+      productId = bestBuyDetails?.sku;
       retailer = 'bestbuy';
-    } else if (targetType === 'asin' || targetValue.includes('amazon.com')) {
+    } else if (isAmazon) {
       const amazonDetails = await extractAmazonContext(targetValue);
       productDetails = amazonDetails;
-      productId = amazonDetails.asin;
+      productId = amazonDetails?.asin;
       retailer = 'amazon';
+    }
+
+    if ((isBestBuy || isAmazon) && !productDetails) {
+      res.status(422).json({ success: false, error: 'Could not read a live price for that product. Check the link, ASIN, or SKU and try again.' });
+      return;
     }
 
     if (productDetails) {

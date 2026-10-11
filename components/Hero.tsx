@@ -9,22 +9,23 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onOpenAlertModal }) => {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setStatus('loading');
     try {
-      await fetch('/api/subscribe', {
+      const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'landing_hero' })
       });
+      if (!res.ok) throw new Error('Subscribe failed');
       setStatus('success');
       setEmail('');
     } catch {
-      setStatus('success');
+      setStatus('error');
     }
   };
 
@@ -94,6 +95,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenAlertModal }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+          {status === 'error' && (
+            <p className="text-xs text-rose-600 font-medium mt-2">
+              Could not subscribe. Please try again.
+            </p>
+          )}
           {status === 'success' && (
             <p className="text-xs text-emerald-700 font-medium mt-2">
               ✓ Subscribed! You will receive verified Amazon price drops.
