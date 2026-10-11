@@ -18,6 +18,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [settingAlertId, setSettingAlertId] = useState<string | null>(null);
   const [successAlertId, setSuccessAlertId] = useState<string | null>(null);
+  const [failedAlertId, setFailedAlertId] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +63,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
 
     try {
       // 1. Post to backend
-      await fetch('/api/create-alert', {
+      const res = await fetch('/api/create-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,6 +76,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
           triggerOnPredictedDrop: true
         })
       });
+      if (!res.ok) throw new Error('Alert was not saved');
 
       // 2. Save into local storage so My Alerts page shows it immediately
       const saved = localStorage.getItem('price_oracle_alerts');
@@ -96,6 +98,8 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
       if (onAlertCreated) onAlertCreated();
       setTimeout(() => setSuccessAlertId(null), 4000);
     } catch (err) {
+      setFailedAlertId(product.id);
+      setTimeout(() => setFailedAlertId(null), 4000);
       console.error('Failed to set alert:', err);
     } finally {
       setSettingAlertId(null);
@@ -169,6 +173,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
           {results.map((product) => {
             const isSetting = settingAlertId === product.id;
             const isSuccess = successAlertId === product.id;
+            const isFailed = failedAlertId === product.id;
 
             return (
               <div
@@ -235,6 +240,8 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : isSetting
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : isFailed
+                        ? 'bg-rose-50 text-rose-700 border border-rose-300'
                         : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 hover:shadow'
                     }`}
                   >
@@ -251,7 +258,7 @@ export const QuickAlertBar: React.FC<QuickAlertBarProps> = ({ onAlertCreated }) 
                     ) : (
                       <>
                         <Bell className="w-3.5 h-3.5" />
-                        <span>Set Alert</span>
+                        <span>{isFailed ? 'Not saved. Retry' : 'Set Alert'}</span>
                       </>
                     )}
                   </button>

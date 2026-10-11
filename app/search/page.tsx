@@ -38,6 +38,7 @@ function SearchContent() {
   // Tracking State
   const [settingAlertId, setSettingAlertId] = useState<string | null>(null);
   const [successAlertId, setSuccessAlertId] = useState<string | null>(null);
+  const [failedAlertId, setFailedAlertId] = useState<string | null>(null);
 
   const executeSearch = (searchTerm: string) => {
     setLoading(true);
@@ -73,7 +74,7 @@ function SearchContent() {
     setSettingAlertId(product.id);
 
     try {
-      await fetch('/api/create-alert', {
+      const res = await fetch('/api/create-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,6 +87,7 @@ function SearchContent() {
           triggerOnPredictedDrop: true,
         }),
       });
+      if (!res.ok) throw new Error('Alert was not saved');
 
       const saved = localStorage.getItem('price_oracle_alerts');
       const existing = saved ? JSON.parse(saved) : [];
@@ -105,6 +107,8 @@ function SearchContent() {
       setSuccessAlertId(product.id);
       setTimeout(() => setSuccessAlertId(null), 4000);
     } catch (err) {
+      setFailedAlertId(product.id);
+      setTimeout(() => setFailedAlertId(null), 4000);
       console.error(err);
     } finally {
       setSettingAlertId(null);
@@ -230,6 +234,7 @@ function SearchContent() {
             {results.map((product, index) => {
               const isSetting = settingAlertId === product.id;
               const isSuccess = successAlertId === product.id;
+              const isFailed = failedAlertId === product.id;
 
               return (
                 <div
@@ -330,6 +335,8 @@ function SearchContent() {
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : isSetting
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : isFailed
+                            ? 'bg-rose-50 text-rose-700 border border-rose-300'
                             : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 hover:shadow'
                         }`}
                       >
@@ -346,7 +353,7 @@ function SearchContent() {
                         ) : (
                           <>
                             <Bell className="w-4 h-4" />
-                            <span>Set Alert</span>
+                            <span>{isFailed ? 'Not saved. Retry' : 'Set Alert'}</span>
                           </>
                         )}
                       </button>

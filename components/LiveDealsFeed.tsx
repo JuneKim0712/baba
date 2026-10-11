@@ -10,7 +10,7 @@ interface DealsProps {
 const FEATURED_DEALS = [
   {
     retailer: 'Amazon',
-    productId: 'B0CX23V258',
+    productId: 'B0CX22ZW1T',
     title: 'Apple MacBook Air 13-inch (M3 Chip, 16GB RAM)',
     category: 'Electronics',
     currentPrice: 899.00,
@@ -19,11 +19,11 @@ const FEATURED_DEALS = [
     tier: 'LOWEST',
     deltaMonth: -4.5,
     recommendation: 'BUY NOW',
-    url: 'https://www.amazon.com/dp/B0CX23V258'
+    url: 'https://www.amazon.com/dp/B0CX22ZW1T'
   },
   {
     retailer: 'Amazon',
-    productId: 'B09V3HN1KC',
+    productId: 'B09HM94VDS',
     title: 'Logitech MX Master 3S Wireless Performance Mouse',
     category: 'Electronics',
     currentPrice: 84.99,
@@ -32,11 +32,11 @@ const FEATURED_DEALS = [
     tier: 'LOW',
     deltaMonth: +2.1,
     recommendation: 'BUY NOW',
-    url: 'https://www.amazon.com/dp/B09V3HN1KC'
+    url: 'https://www.amazon.com/dp/B09HM94VDS'
   },
   {
     retailer: 'Amazon',
-    productId: 'B08N5WRWNW',
+    productId: 'B0CL61F39H',
     title: 'Sony PlayStation 5 Console (Slim Edition)',
     category: 'Gaming',
     currentPrice: 449.00,
@@ -45,11 +45,11 @@ const FEATURED_DEALS = [
     tier: 'LOW',
     deltaMonth: -8.0,
     recommendation: 'WAIT',
-    url: 'https://www.amazon.com/dp/B08N5WRWNW'
+    url: 'https://www.amazon.com/dp/B0CL61F39H'
   },
   {
     retailer: 'Amazon',
-    productId: 'B08F6XQ1N8',
+    productId: 'B07FDJMC9Q',
     title: 'Ninja AF101 Air Fryer, 4 Qt Capacity',
     category: 'Home & Kitchen',
     currentPrice: 79.99,
@@ -58,7 +58,7 @@ const FEATURED_DEALS = [
     tier: 'LOWEST',
     deltaMonth: +12.0,
     recommendation: 'BUY NOW',
-    url: 'https://www.amazon.com/dp/B08F6XQ1N8'
+    url: 'https://www.amazon.com/dp/B07FDJMC9Q'
   },
   {
     retailer: 'Best Buy',

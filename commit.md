@@ -99,3 +99,24 @@ When multiple agents or developers work simultaneously on this repo:
   - Run `npm test` and `npm run build` before committing; both must pass.
   - Catalog ASINs must be unique and each `amazonUrl` must contain its own ASIN (enforced by tests).
 - **Known issue**: ASIN `B0CX23V258` returns 404 on Amazon. It is still used by `lt-1` in `lib/search-service.ts`, the first card in `components/LiveDealsFeed.tsx`, and the sample alert in `app/alerts/page.tsx`.
+
+---
+
+### Commit: Verified Catalog, Real Alert Rules & Honest Alert Buttons
+- **What was done by collaborator**:
+  - Checked every catalog ASIN in `lib/search-service.ts` against the live Amazon page. 11 of 14 were dead pages (HTTP 404) and 2 were a different product than labelled.
+    - Replaced with live-verified ASINs: `ram-1` B07RW6Z692, `eb-1` B0CHWRXH8B, `eb-2` B0C33XXS56, `eb-3` B0CD2FSRDD, `ms-1` B09HM94VDS, `kb-1` B07YB32H52, `lt-1` B0CX22ZW1T.
+    - `ram-2` (B0C3RYHZJQ) is really a CORSAIR Vengeance DDR5 6000MHz kit, so its title, description and specs now say so.
+    - `ram-3`, `ram-4`, `hp-1`..`hp-4` could not be matched to a live listing: they are flagged `isRealAmazonProduct: false` and link to an Amazon search for their title.
+    - Prices of verified entries were set to the live price on the day of the check; they are a snapshot, not live.
+  - `components/LiveDealsFeed.tsx` and the sample alert in `app/alerts/page.tsx` use live-verified ASINs (MacBook Air M3 B0CX22ZW1T, MX Master 3S B09HM94VDS, PS5 Slim B0CL61F39H, Ninja AF101 B07FDJMC9Q). The prices and discounts on the deal cards are still demo figures.
+  - New `lib/alert-rules.ts` (tested): `isProductAlert` and `shouldTriggerAlert`. The cron now skips category/keyword alerts instead of scraping a bogus URL, honours `minDiscountPercent`, and fills the alert email from `calculatePriceProjection` instead of hardcoded numbers.
+  - `createAlert` stores the `userId` sent by the client.
+  - "Set Alert" on the search page and quick alert bar checks the backend response: a rejected alert is not written to local storage and the button shows "Not saved. Retry".
+- **Core Functionality to Preserve**:
+  - Only mark a catalog entry `isRealAmazonProduct: true` after checking its ASIN against the live page.
+  - Each context.dev scrape costs 2 credits and only one may run at a time; do not add bulk or parallel lookups.
+- **Known issues**:
+  - Category alerts and the "predictive drop" option are stored but never trigger; there is no data source for either yet.
+  - Generated search suggestions (`auto-*`) and unverified catalog entries have made-up ASINs, so "Set Alert" on them is rejected by the backend.
+  - `firestore.rules` lets any signed-in user read, update and delete every alert, including other users' emails.

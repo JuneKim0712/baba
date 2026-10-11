@@ -12,11 +12,26 @@ describe('VERIFIED_AMAZON_CATALOG', () => {
     expect(new Set(asins).size).toBe(asins.length);
   });
 
-  it('links every product to its own Amazon page', () => {
-    for (const p of VERIFIED_AMAZON_CATALOG) {
+  it('links every verified product to its own Amazon page', () => {
+    const verified = VERIFIED_AMAZON_CATALOG.filter(p => p.isRealAmazonProduct);
+
+    expect(verified.length).toBeGreaterThan(0);
+    for (const p of verified) {
       expect(p.asin).toMatch(/^[A-Z0-9]{10}$/);
-      expect(p.amazonUrl).toContain(`/dp/${p.asin}`);
-      expect(p.isRealAmazonProduct).toBe(true);
+      expect(p.amazonUrl).toBe(`https://www.amazon.com/dp/${p.asin}`);
+    }
+  });
+
+  it('sends unverified products to an Amazon search for their title, never a product page', () => {
+    for (const p of VERIFIED_AMAZON_CATALOG.filter(x => !x.isRealAmazonProduct)) {
+      expect(p.amazonUrl).toBe(`https://www.amazon.com/s?k=${encodeURIComponent(p.title)}`);
+    }
+  });
+
+  it('does not use ASINs known to be dead Amazon pages', () => {
+    const dead = ['B0CX23V258', 'B082DH1FWM', 'B0C8PT6V9P', 'B08XVVPXX4', 'B09NS72B57'];
+    for (const p of VERIFIED_AMAZON_CATALOG.filter(x => x.isRealAmazonProduct)) {
+      expect(dead).not.toContain(p.asin);
     }
   });
 

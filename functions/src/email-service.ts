@@ -41,7 +41,7 @@ export async function sendPriceAlertEmail(payload: AlertEmailPayload) {
         <p style="font-size: 14px; color: #64748b; margin: 0;">Current ${retailer.name} Price</p>
         <p style="font-size: 32px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">$${payload.currentPrice.toFixed(2)}</p>
         <p style="font-size: 13px; color: #16a34a; font-weight: bold; margin-top: 6px;">
-          Oracle Recommendation: ${payload.recommendation} (Historical Floor: $${payload.lowestPrice.toFixed(2)})
+          Oracle Recommendation: ${payload.recommendation} (Projected Floor: $${payload.lowestPrice.toFixed(2)})
         </p>
       </div>
 

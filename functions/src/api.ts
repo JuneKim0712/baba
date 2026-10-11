@@ -18,6 +18,7 @@ export const createAlert = onRequest(async (req, res) => {
   try {
     const {
       email,
+      userId,
       targetType, // 'asin' | 'sku' | 'category' | 'keyword'
       targetValue, // URL, ASIN, Best Buy SKU, or category name
       targetPrice,
@@ -64,6 +65,7 @@ export const createAlert = onRequest(async (req, res) => {
 
     const alertDoc = {
       email: email.toLowerCase().trim(),
+      userId: userId || null,
       targetType: isBestBuy ? 'sku' : targetType || (targetValue.includes('amazon.com') ? 'asin' : 'category'),
       targetValue: productId || targetValue,
       retailer,

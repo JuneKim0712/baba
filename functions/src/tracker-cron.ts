@@ -2,6 +2,8 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
 import { sendPriceAlertEmail, RETAILERS, Retailer } from './email-service';
 import { scrapeProduct } from '../../lib/context-dev';
+import { calculatePriceProjection } from '../../lib/projection-engine';
+import { isProductAlert, shouldTriggerAlert } from '../../lib/alert-rules';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -30,13 +32,20 @@ async function checkRetailerDeals(retailer: Retailer) {
     for (const doc of alertsSnapshot.docs) {
       const alert = doc.data();
       if ((alert.retailer || 'amazon') !== retailer) continue;
+      if (!isProductAlert(alert)) continue;
       const productId = alert.targetValue;
 
       // Extract latest price via context.dev
       let currentPrice = null;
+      let regularPrice = null;
+      let category = null;
       try {
         const product = await scrapeProduct(RETAILERS[retailer].productUrl(productId), contextApiKey);
-        if (product?.price) currentPrice = product.price;
+        if (product?.price) {
+          currentPrice = product.price;
+          regularPrice = product.regularPrice;
+          category = product.category;
+        }
       } catch (e) {
         console.warn(`[Cron] Price check failed for ${productId}:`, e);
       }
@@ -45,11 +54,11 @@ async function checkRetailerDeals(retailer: Retailer) {
       if (!currentPrice) continue;
 
       // Check threshold trigger
-      const targetPrice = alert.targetPrice || (alert.currentPriceAtCreation ? alert.currentPriceAtCreation * 0.95 : null);
-
-      if (targetPrice && currentPrice <= targetPrice) {
+      if (shouldTriggerAlert(alert, currentPrice, regularPrice)) {
         console.log(`[Cron] Trigger condition met for alert ${doc.id}!`);
-        
+
+        const projection = calculatePriceProjection(currentPrice, category || 'Electronics');
+
         await sendPriceAlertEmail({
           to: alert.email,
           productTitle: alert.productTitle || `${retailerName} Item (${productId})`,
@@ -57,10 +66,10 @@ async function checkRetailerDeals(retailer: Retailer) {
           productId,
           currentPrice,
           originalPrice: alert.currentPriceAtCreation,
-          projectedMid: currentPrice * 0.98,
-          lowestPrice: currentPrice * 0.90,
-          recommendation: 'BUY NOW',
-          deltaPercentMonth: -6.5
+          projectedMid: projection.projectedMid,
+          lowestPrice: projection.quantiles.lowest,
+          recommendation: projection.recommendation,
+          deltaPercentMonth: projection.deltaPercentMonth
         });
 
         // Mark as triggered so we don't spam

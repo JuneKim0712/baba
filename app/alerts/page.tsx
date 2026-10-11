@@ -34,7 +34,7 @@ const INITIAL_DEMO_ALERTS: AlertItem[] = [
   {
     id: 'demo-2',
     targetType: 'asin',
-    targetValue: 'B0CX23V258',
+    targetValue: 'B0CX22ZW1T',
     productTitle: 'Apple MacBook Air 13-inch (M3 Chip)',
     currentPriceAtCreation: 899.00,
     targetPrice: 849.00,

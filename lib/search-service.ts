@@ -15,21 +15,23 @@ export interface SearchProductResult {
   specs?: string[];
 }
 
-// REAL VERIFIED AMAZON PRODUCTS DATABASE
+// Product catalog. Entries with isRealAmazonProduct: true had their ASIN checked against the live
+// Amazon page; the rest could not be matched to a live listing and link to an Amazon search instead.
+// Prices are a snapshot from when each entry was checked, not live.
 export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
   // RAM / Computer Memory
   {
     id: 'ram-1',
-    asin: 'B082DH1FWM',
+    asin: 'B07RW6Z692',
     title: 'CORSAIR VENGEANCE LPX DDR4 32GB (2x16GB) 3200MHz C16 Desktop Memory',
     description: 'High-performance pure aluminum heat spreader designed for overclocking, low-profile form factor compatible with Intel and AMD motherboards.',
-    price: 59.99,
-    originalPrice: 74.99,
+    price: 239.95,
+    originalPrice: 239.95,
     rating: 4.8,
     reviewsCount: 68420,
     category: 'Computer Memory',
     image: 'https://images.unsplash.com/photo-1562976540-1502c2145186?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B082DH1FWM',
+    amazonUrl: 'https://www.amazon.com/dp/B07RW6Z692',
     projectedDiscount: 20,
     isRealAmazonProduct: true,
     specs: ['DDR4 3200MHz', '32GB (2 x 16GB)', 'Low-Profile Aluminum Spreader', 'Intel XMP 2.0 Support']
@@ -37,10 +39,10 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
   {
     id: 'ram-2',
     asin: 'B0C3RYHZJQ',
-    title: 'Crucial Pro DDR5 RAM 32GB Kit (2x16GB) 5600MHz CL46 Desktop Gaming RAM',
-    description: 'Next-gen DDR5 memory delivering up to 1.75x data rates over DDR4, plug-and-play Intel XMP 3.0 and AMD EXPO support with sleek matte black heat spreader.',
-    price: 84.99,
-    originalPrice: 104.99,
+    title: 'CORSAIR Vengeance DDR5 RAM 32GB (2x16GB) 6000MHz CL30 Desktop Memory',
+    description: 'High-speed DDR5 desktop memory with Intel XMP 3.0 support, tight CL30 timings and a low-profile aluminum heat spreader.',
+    price: 529.99,
+    originalPrice: 529.99,
     rating: 4.7,
     reviewsCount: 14210,
     category: 'Computer Memory',
@@ -48,7 +50,7 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     amazonUrl: 'https://www.amazon.com/dp/B0C3RYHZJQ',
     projectedDiscount: 19,
     isRealAmazonProduct: true,
-    specs: ['DDR5 5600MHz', '32GB (2 x 16GB)', 'Universal Intel & AMD Support', 'Downclockable to 5200/4800MHz']
+    specs: ['DDR5 6000MHz', '32GB (2 x 16GB)', 'CL30 Timings', 'Intel XMP 3.0']
   },
   {
     id: 'ram-3',
@@ -61,9 +63,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 22150,
     category: 'Computer Memory',
     image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B097C2242T',
+    amazonUrl: 'https://www.amazon.com/s?k=Kingston%20Fury%20Beast%2016GB%20(2x8GB)%203200MHz%20DDR4%20CL16%20Desktop%20Memory',
     projectedDiscount: 20,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['DDR4 3200MHz', '16GB (2 x 8GB)', 'Intel XMP Ready', 'Plug N Play at 2666MHz']
   },
   {
@@ -77,9 +79,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 19300,
     category: 'Computer Memory',
     image: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B09461D64N',
+    amazonUrl: 'https://www.amazon.com/s?k=TEAMGROUP%20T-Force%20Delta%20RGB%20DDR4%2032GB%20(2x16GB)%203600MHz%20CL18%20Gaming%20RAM',
     projectedDiscount: 18,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['DDR4 3600MHz', '32GB (2 x 16GB)', '120° Wide-Angle RGB', 'QVL Approved']
   },
 
@@ -95,9 +97,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 3820,
     category: 'Beauty & Hair Care',
     image: 'https://images.unsplash.com/photo-1590159763121-7c9ff3149e0a?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B0892KQW7P',
+    amazonUrl: 'https://www.amazon.com/s?k=French%20Concord%20Hair%20Pin%20Curved%20Metal%20U-Shaped%20Chignon%20Updo%20Pins%20(4-Pack)',
     projectedDiscount: 25,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['Set of 4 Colors', '4.3-inch Length', 'Electroplated Alloy', 'No-Slip Smooth Ends']
   },
   {
@@ -111,9 +113,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 1940,
     category: 'Beauty & Hair Care',
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B09Y8N4M3L',
+    amazonUrl: 'https://www.amazon.com/s?k=Minimalist%20Matte%20Geometric%20Bobby%20Pins%20%26%20Alligator%20Hair%20Clips%20(12-Piece)',
     projectedDiscount: 29,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['12-Piece Assortment', 'Matte Gold & Silver', 'Snag-Free Coating', 'Rust-Resistant Steel']
   },
   {
@@ -127,9 +129,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 5210,
     category: 'Beauty & Hair Care',
     image: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B07V2H9QLK',
+    amazonUrl: 'https://www.amazon.com/s?k=Vintage%20Pearl%20%26%20Crystal%20Bridal%20Floral%20Hair%20Pins%20Decorative%20Accessories%20(20-Pack)',
     projectedDiscount: 26,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['20 Handcrafted Pins', 'Faux Lustrous Pearls', 'Flexible Positioning', 'Tarnish-Resistant']
   },
   {
@@ -143,9 +145,9 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 4120,
     category: 'Beauty & Hair Care',
     image: 'https://images.unsplash.com/photo-1584297091622-af8e5fd7598c?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B08D3R7V6P',
+    amazonUrl: 'https://www.amazon.com/s?k=Acetate%20Tortoise%20Shell%20U-Shape%20Hair%20Stick%20Chignon%20Pin%20French%20Hair%20Pin%20(3-Pack)',
     projectedDiscount: 31,
-    isRealAmazonProduct: true,
+    isRealAmazonProduct: false,
     specs: ['3-Pack Classic Patterns', '4.5-inch Length', 'Cellulose Acetate Resin', 'Ultralight 12g']
   },
 
@@ -155,8 +157,8 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     asin: 'B0CHWRXH8B',
     title: 'Apple AirPods Pro (2nd Generation) Wireless Earbuds with USB-C MagSafe Case',
     description: 'Up to 2x more Active Noise Cancellation, Adaptive Audio that automatically tailors noise control, Transparency mode, and Personalized Spatial Audio.',
-    price: 189.99,
-    originalPrice: 249.00,
+    price: 263.86,
+    originalPrice: 263.86,
     rating: 4.7,
     reviewsCount: 14200,
     category: 'Electronics',
@@ -168,32 +170,32 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
   },
   {
     id: 'eb-2',
-    asin: 'B0C8PT6V9P',
+    asin: 'B0C33XXS56',
     title: 'Sony WF-1000XM5 Industry Leading Noise Canceling Truly Wireless Earbuds',
     description: 'Precision engineered dynamic driver X reproduces wide frequency audio, dual feedback microphones, bone conduction sensor for crystal clear calls.',
-    price: 248.00,
+    price: 198.00,
     originalPrice: 299.99,
     rating: 4.4,
     reviewsCount: 6810,
     category: 'Electronics',
     image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B0C8PT6V9P',
+    amazonUrl: 'https://www.amazon.com/dp/B0C33XXS56',
     projectedDiscount: 17,
     isRealAmazonProduct: true,
     specs: ['Integrated Processor V2', 'Hi-Res Wireless Audio (LDAC)', '8hr Earbuds + 16hr Case', 'Multipoint Bluetooth']
   },
   {
     id: 'eb-3',
-    asin: 'B08XVVPXX4',
+    asin: 'B0CD2FSRDD',
     title: 'Bose QuietComfort Ultra Wireless Noise Cancelling Earbuds with Spatial Audio',
     description: 'World-class noise cancellation with breakthrough Bose Immersive Audio, CustomTune technology adapts sound to your ear shape.',
-    price: 239.00,
+    price: 299.00,
     originalPrice: 299.00,
     rating: 4.5,
     reviewsCount: 9450,
     category: 'Electronics',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B08XVVPXX4',
+    amazonUrl: 'https://www.amazon.com/dp/B0CD2FSRDD',
     projectedDiscount: 20,
     isRealAmazonProduct: true,
     specs: ['Bose Immersive Spatial Audio', 'CustomTune Tech', '6 Hours Battery', 'IPX4 Water Resistance']
@@ -202,7 +204,7 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
   // Peripherals & Tech
   {
     id: 'ms-1',
-    asin: 'B09V3HN1KC',
+    asin: 'B09HM94VDS',
     title: 'Logitech MX Master 3S Wireless Performance Mouse with Quiet Clicks',
     description: '8000 DPI track-on-glass sensor, electromagnetic MagSpeed scrolling wheel capable of 1000 lines per second, and ergonomic thumb rest with gestures.',
     price: 84.99,
@@ -211,30 +213,30 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 18900,
     category: 'Electronics',
     image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B09V3HN1KC',
+    amazonUrl: 'https://www.amazon.com/dp/B09HM94VDS',
     projectedDiscount: 15,
     isRealAmazonProduct: true,
     specs: ['8K DPI Optical Sensor', 'MagSpeed Smart Wheel', 'USB-C Fast Charging (70 Days)', 'Easy-Switch 3 Devices']
   },
   {
     id: 'kb-1',
-    asin: 'B09NS72B57',
+    asin: 'B07YB32H52',
     title: 'Keychron K2 Version 2 Wireless Mechanical Keyboard with Gateron G Pro Brown',
     description: 'Compact 75% layout 84 keys wireless Bluetooth mechanical keyboard, compatible with Mac and Windows layout with dual connectivity.',
-    price: 69.99,
+    price: 84.99,
     originalPrice: 89.99,
     rating: 4.6,
     reviewsCount: 7420,
     category: 'Electronics',
     image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B09NS72B57',
+    amazonUrl: 'https://www.amazon.com/dp/B07YB32H52',
     projectedDiscount: 22,
     isRealAmazonProduct: true,
     specs: ['75% Compact 84-Key', 'Gateron G Pro Mechanical Switches', '4000mAh Battery', 'Mac/Windows Keycaps Included']
   },
   {
     id: 'lt-1',
-    asin: 'B0CX23V258',
+    asin: 'B0CX22ZW1T',
     title: 'Apple 2024 MacBook Air 13-inch Laptop with M3 chip (16GB RAM, 256GB SSD)',
     description: 'Strikingly thin design with up to 18 hours of battery life, brilliant Liquid Retina display, 1080p FaceTime HD camera, and dual external display support.',
     price: 899.00,
@@ -243,7 +245,7 @@ export const VERIFIED_AMAZON_CATALOG: SearchProductResult[] = [
     reviewsCount: 4890,
     category: 'Computers & Laptops',
     image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=240&h=240&fit=crop',
-    amazonUrl: 'https://www.amazon.com/dp/B0CX23V258',
+    amazonUrl: 'https://www.amazon.com/dp/B0CX22ZW1T',
     projectedDiscount: 18,
     isRealAmazonProduct: true,
     specs: ['Apple M3 8-core CPU', '16GB Unified Memory', '13.6-inch Liquid Retina Display', 'MagSafe 3 Charging']
