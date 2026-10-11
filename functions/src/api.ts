@@ -1,11 +1,21 @@
-import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
-import { extractAmazonContext, extractBestBuyContext } from '@/lib/context-dev';
-import { calculatePriceProjection } from '@/lib/projection-engine';
+import { onRequest } from 'firebase-functions/v2/https';
+import * as admin from 'firebase-admin';
+import { extractAmazonContext, extractBestBuyContext } from '../../lib/context-dev';
+import { calculatePriceProjection } from '../../lib/projection-engine';
 
-export async function POST(req: Request) {
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+export const createAlert = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
   try {
-    const body = await req.json();
     const {
       email,
       targetType, // 'asin' | 'sku' | 'category' | 'keyword'
@@ -13,10 +23,11 @@ export async function POST(req: Request) {
       targetPrice,
       minDiscountPercent,
       triggerOnPredictedDrop = true,
-    } = body;
+    } = req.body || {};
 
     if (!email || !targetValue) {
-      return NextResponse.json({ error: 'Email and target product or category required' }, { status: 400 });
+      res.status(400).json({ error: 'Email and target product or category required' });
+      return;
     }
 
     // Extract product details if ASIN, SKU, or URL
@@ -59,19 +70,40 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    if (adminDb) {
-      const docRef = await adminDb.collection('alerts').add(alertDoc);
-      return NextResponse.json({ success: true, alertId: docRef.id, alert: alertDoc });
-    }
-
-    return NextResponse.json({
-      success: true,
-      alertId: 'mock-alert-' + Date.now(),
-      alert: alertDoc,
-      message: 'Alert configured successfully! Monitoring started.',
-    });
+    const docRef = await db.collection('alerts').add(alertDoc);
+    res.json({ success: true, alertId: docRef.id, alert: alertDoc });
   } catch (err: any) {
     console.error('Alert creation error:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    res.status(500).json({ success: false, error: err.message });
   }
-}
+});
+
+export const subscribe = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { email, source = 'landing_hero' } = req.body || {};
+
+    if (!email || !email.includes('@')) {
+      res.status(400).json({ error: 'Valid email required' });
+      return;
+    }
+
+    const subscriberData = {
+      email: email.toLowerCase().trim(),
+      source,
+      createdAt: new Date().toISOString(),
+      active: true,
+    };
+
+    await db.collection('subscribers').doc(email.toLowerCase().trim()).set(subscriberData, { merge: true });
+
+    res.json({ success: true, message: 'Subscribed to hot deal alerts!' });
+  } catch (err: any) {
+    console.error('Subscription error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});

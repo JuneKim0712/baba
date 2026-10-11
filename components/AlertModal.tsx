@@ -48,7 +48,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, onClose, initial
         setErrorMsg(data.error || 'Failed to create alert');
       }
     } catch {
-      setSuccess(true);
+      setErrorMsg('Could not reach the alert service. Please try again.');
     } finally {
       setLoading(false);
     }

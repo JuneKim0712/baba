@@ -3,6 +3,8 @@ node_modules/
 out/
 .env*.local
 firebase-debug.log
+functions/lib/
+functions/.env*
 firebase-debug.*.log
 .DS_Store
 

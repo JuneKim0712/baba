@@ -23,18 +23,19 @@ Before committing or publishing changes:
    git add .
    git commit -m "your descriptive message"
    git push origin main
-   npx firebase-tools deploy --only hosting --project xylm-306e6
+   npx firebase-tools deploy --only hosting,functions --project xylm-306e6
    ```
 
 ### 3. Component Architecture & Separation of Concerns
-- `app/`: Next.js 14 App Router pages and API routes. Use `'use client'` strictly when client-side hooks (`useState`, `useEffect`) are used.
+- `app/`: Next.js 14 App Router pages (static export; no API routes — `/api/*` is served by Cloud Functions via Hosting rewrites in `firebase.json`). Use `'use client'` strictly when client-side hooks (`useState`, `useEffect`) are used.
 - `components/`: UI modules with isolated styling (Tailwind CSS).
   - Must never leak global CSS into the Amazon content scripts or break mobile responsiveness.
 - `lib/`: Pure utility functions and shared math engines:
   - `projection-engine.ts`: 5-tier quantile calculations (`Lowest`, `Low`, `Mid`, `High`, `Highest`) and 30-day projected percentage changes.
   - `context-dev.ts`: Integration client for `context.dev` real-time extraction (`extractAmazonContext`, `extractBestBuyContext`).
-  - `firebase.ts` / `firebase-admin.ts`: Firebase client and admin instances.
-- `functions/`: Firebase Cloud Functions backend.
+  - `firebase.ts`: Firebase client instance.
+- `functions/`: Firebase Cloud Functions backend. Compiles `lib/context-dev.ts` and `lib/projection-engine.ts` alongside its own sources.
+  - `api.ts`: HTTP endpoints `createAlert` (`/api/create-alert`) and `subscribe` (`/api/subscribe`).
   - `tracker-cron.ts`: Scheduled jobs for monitoring Amazon and Best Buy prices and triggering email alerts. Alerts carry a `retailer` field (`'amazon'` | `'bestbuy'`); alerts without one are Amazon.
   - `email-service.ts`: HTML notification templates.
 
@@ -62,8 +63,12 @@ npm run dev
 # 3. Build static export (generates /out for Firebase Hosting)
 npm run build
 
-# 4. Deploy to Firebase Hosting
-npx firebase-tools deploy --only hosting --project xylm-306e6
+# 4. Test the site and /api endpoints locally (npm run dev alone has no /api; needs Java for the Firestore emulator)
+npm --prefix functions install && npm --prefix functions run build
+npx firebase-tools emulators:start --only hosting,functions,firestore --project demo-baba
+
+# 5. Deploy to Firebase Hosting and Cloud Functions (the API and cron jobs live in functions)
+npx firebase-tools deploy --only hosting,functions --project xylm-306e6
 ```
 
 ---
