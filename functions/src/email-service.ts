@@ -148,3 +148,72 @@ export async function sendCategoryAlertNotice(to: string, category: string): Pro
 
   return sendEmail(to, `Your ${safeCategory} alert is saved (category tracking is in progress)`, html, `category:${safeCategory}`);
 }
+
+export interface AlertConfirmationPayload {
+  to: string;
+  productTitle: string;
+  retailer: Retailer;
+  productId: string;
+  currentPrice: number;
+  targetPrice: number | null;
+  minDiscountPercent: number | null;
+  recommendation?: string;
+  rangeLow?: number;
+  rangeHigh?: number;
+}
+
+export function renderAlertConfirmationEmail(payload: AlertConfirmationPayload) {
+  const retailer = RETAILERS[payload.retailer];
+  const productUrl = retailer.productUrl(payload.productId);
+  const safeTitle = payload.productTitle.replace(/[<>&]/g, '');
+
+  // The same rule the price check applies (lib/alert-rules.ts), in words
+  const trigger = payload.targetPrice
+    ? `drops to <strong>$${payload.targetPrice.toFixed(2)}</strong> or lower`
+    : payload.minDiscountPercent
+    ? `is discounted by <strong>${payload.minDiscountPercent}%</strong> or more`
+    : `drops to <strong>$${(payload.currentPrice * 0.95).toFixed(2)}</strong> or lower (5% below today's price)`;
+
+  const forecast = payload.recommendation && payload.rangeLow && payload.rangeHigh
+    ? `<p style="font-size: 13px; color: #475569; margin: 8px 0 0 0;">Our 30-day outlook: <strong>${payload.recommendation}</strong>, typical range $${payload.rangeLow.toFixed(2)} to $${payload.rangeHigh.toFixed(2)}.</p>`
+    : '';
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
+      <div style="background: #10b981; padding: 12px 18px; border-radius: 12px; color: white; font-weight: bold; font-size: 14px; display: inline-block;">
+        PriceOracle Sentinel: alert active
+      </div>
+
+      <h2 style="color: #0f172a; margin-top: 18px; font-size: 20px;">We are watching ${safeTitle}</h2>
+
+      <div style="margin: 20px 0; background: #f8fafc; padding: 18px; border-radius: 12px;">
+        <p style="font-size: 14px; color: #64748b; margin: 0;">${retailer.name} price right now</p>
+        <p style="font-size: 32px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">$${payload.currentPrice.toFixed(2)}</p>
+        ${forecast}
+      </div>
+
+      <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+        We check this price every few hours and will email you as soon as it ${trigger}.
+      </p>
+
+      <div style="margin-top: 24px;">
+        <a href="${productUrl}" style="background: #0f172a; color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+          View on ${retailer.name} &rarr;
+        </a>
+      </div>
+
+      <hr style="margin: 32px 0 16px 0; border: none; border-top: 1px solid #e2e8f0;" />
+      <p style="font-size: 11px; color: #94a3b8;">
+        You are receiving this because a price alert was set for this address on PriceOracle Alertant.
+      </p>
+    </div>
+  `;
+
+  return { subject: `Alert set: ${safeTitle.slice(0, 70)} at $${payload.currentPrice.toFixed(2)}`, html };
+}
+
+// Sent once, when a product alert is created
+export async function sendAlertConfirmationEmail(payload: AlertConfirmationPayload): Promise<EmailStatus> {
+  const { subject, html } = renderAlertConfirmationEmail(payload);
+  return sendEmail(payload.to, subject, html, `confirmation ${payload.retailer}:${payload.productId}`);
+}

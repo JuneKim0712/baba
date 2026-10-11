@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import { extractAmazonContext, extractBestBuyContext, searchRetailers, researchProduct } from '../../lib/context-dev';
 import { getForecast } from './forecast';
 import { runAlertCheck } from './tracker-cron';
-import { sendCategoryAlertNotice, RETAILERS } from './email-service';
+import { sendCategoryAlertNotice, sendAlertConfirmationEmail, RETAILERS } from './email-service';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -102,7 +102,21 @@ export const createAlert = onRequest(async (req, res) => {
     const docRef = await db.collection('alerts').add(alertDoc);
 
     // Category and keyword alerts are not price-checked yet; say so instead of going silent
-    const notice = productDetails ? null : await sendCategoryAlertNotice(alertDoc.email, String(targetValue));
+    // A product alert gets a confirmation of what is being watched and when it will fire
+    const notice = productDetails
+      ? await sendAlertConfirmationEmail({
+          to: alertDoc.email,
+          productTitle: alertDoc.productTitle,
+          retailer,
+          productId,
+          currentPrice: productDetails.currentPrice,
+          targetPrice: alertDoc.targetPrice,
+          minDiscountPercent: alertDoc.minDiscountPercent,
+          recommendation: initialProjection?.recommendation,
+          rangeLow: initialProjection?.quantiles?.low,
+          rangeHigh: initialProjection?.quantiles?.high
+        })
+      : await sendCategoryAlertNotice(alertDoc.email, String(targetValue));
 
     res.json({ success: true, alertId: docRef.id, alert: alertDoc, notice });
   } catch (err: any) {
