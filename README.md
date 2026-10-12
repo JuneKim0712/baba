@@ -3,7 +3,8 @@
 > **Project Mission**: Autonomous predictive e-commerce intelligence system combining a Google Chrome extension (injected Amazon price timing oracle) with a centralized web platform and automated Amazon and Best Buy alerting backend powered by `context.dev`, prediction market modeling, and Google Firebase.
 
 ---
-
+# EXTENSION: https://github.com/JuneKim0712/babab
+---
 ## 🤖 Multi-Agent Collaboration Standards & Protocol
 
 This repository is actively developed and maintained by **autonomous AI agents** (Cursor, Antigravity, Claude, etc.) and human developers. To prevent race conditions, merge conflicts, and regressions, **every agent interacting with this repository MUST adhere to the following rules**:
