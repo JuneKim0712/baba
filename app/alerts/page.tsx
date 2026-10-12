@@ -59,6 +59,44 @@ const INITIAL_DEMO_ALERTS: AlertItem[] = [
   }
 ];
 
+// Mock-up of the AI market check for an alert. The wording is built from the alert's own
+// numbers; it does not call the research agent (that runs from the Search page).
+function mockMarketCheck(alert: AlertItem): { outlook: string; summary: string } | null {
+  if (alert.targetType === 'category' || alert.targetType === 'keyword') return null;
+
+  const price = alert.currentPriceAtCreation;
+  const target = alert.targetPrice;
+  if (!price) return null;
+
+  if (!target) {
+    return {
+      outlook: 'Watching for any dip',
+      summary: `No target set, so this alert fires on a 5% dip to about $${(price * 0.95).toFixed(2)}. Dips of that size usually arrive with a sale event rather than on an ordinary day.`
+    };
+  }
+
+  const gap = ((price - target) / price) * 100;
+  if (gap <= 0) {
+    return { outlook: 'Already at your target', summary: `The price when you set this alert ($${price.toFixed(2)}) was at or below your target of $${target.toFixed(2)}.` };
+  }
+  if (gap <= 10) {
+    return {
+      outlook: 'Target within reach',
+      summary: `Your target is ${gap.toFixed(0)}% below the $${price.toFixed(2)} starting price. Drops of this size are common during routine promotions, so this one has a fair chance of triggering in the coming weeks.`
+    };
+  }
+  if (gap <= 25) {
+    return {
+      outlook: 'Likely needs a sale event',
+      summary: `Your target is ${gap.toFixed(0)}% below the $${price.toFixed(2)} starting price. That usually takes a major sale event or a newer model arriving, so expect to wait for one.`
+    };
+  }
+  return {
+    outlook: 'Ambitious target',
+    summary: `Your target is ${gap.toFixed(0)}% below the $${price.toFixed(2)} starting price. A drop that deep is rare outside clearance pricing; consider a target closer to $${(price * 0.85).toFixed(2)}.`
+  };
+}
+
 export default function AlertsPage() {
   const { user, signInWithGoogle, loading: authLoading } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -269,6 +307,16 @@ export default function AlertsPage() {
                         </span>
                         <span>Frequency: <strong>Every 4 Hours</strong></span>
                       </div>
+                      {mockMarketCheck(alert) && (
+                        <div className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">
+                          <p className="flex items-center space-x-1.5 font-bold text-slate-800">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>AI market check: {mockMarketCheck(alert)!.outlook}</span>
+                            <span className="font-semibold text-slate-400">· preview</span>
+                          </p>
+                          <p className="mt-1 leading-relaxed">{mockMarketCheck(alert)!.summary}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
